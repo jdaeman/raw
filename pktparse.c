@@ -11,7 +11,7 @@
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
 
-char * tcp_handle(const char * pkt, char * buf, int len)
+unsigned char * tcp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	static const char * flags[] = {"CWR", "ECE", "URG", "ACK",
 					"PSH", "RST", "SYN", "FIN",
@@ -35,10 +35,10 @@ char * tcp_handle(const char * pkt, char * buf, int len)
 			"source: %u\tdest: %u\n"
 			"seq: %u\tack_seq: %u\n",
 			flags[off], src, dst, seq, ack_seq);
-	return buf;
+	return (unsigned char *)(tcp + 1); //application data
 }
 		
-char * udp_handle(const char * pkt, char * buf, int len)
+unsigned char * udp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	struct udphdr * udp = (struct udphdr *)pkt;
 	unsigned short src, dst;
@@ -51,10 +51,10 @@ char * udp_handle(const char * pkt, char * buf, int len)
 	sprintf(buf, "-----UDP-----\n"
 			"soruce: %u\tdest: %u\n"
 			"length: %u\n", src, dst, length);
-	return buf;
+	return (unsigned char *)(udp + 1); //application data
 }
 
-char * icmp_handle(const char * pkt, char * buf, int len)
+unsigned char * icmp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	static const char * description[][4] = {
 		"ECHO Reply", "X", "X", "X", //type 0
@@ -80,15 +80,15 @@ char * icmp_handle(const char * pkt, char * buf, int len)
 	{
 		int row = type_to_row[type];
 		sprintf(buf, "-----ICMP-%s-----\n", description[row][code]);
-		return buf;
+		return (unsigned char *)(icmp + 1);
 	}
 
 unknown_type:
 	sprintf(buf, "-----ICMP-Unknown type-----\n");
-	return buf;
+	return (unsigned char *)(icmp + 1);
 }
 
-char * ip_handle(const char * pkt, char * buf, int len)
+unsigned char * ip_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	static const char * protocol[] = {"IP", "ICMP", "IGMP", "X", "IPIP", "X", "TCP", "X", "EGP",
 						"X", "X", "X", "PUP", "X", "X", "X", "X", "UDP"};
@@ -112,10 +112,10 @@ char * ip_handle(const char * pkt, char * buf, int len)
 			"ttl: %u\tprotocol: %s\n"
 			"src: %s\tdest: %s\n", tot_len, ttl, protocol[proto], src, dst);
 
-	return buf;
+	return (unsigned char *)(ip + 1); //next header
 }
 
-char * arp_handle(const char * pkt, char * buf, int len)
+unsigned char * arp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	static const char * operation[] = {"X", "Request", "Reply", "Reverse Request", "Reverse Reply"};
 	
@@ -141,11 +141,11 @@ char * arp_handle(const char * pkt, char * buf, int len)
 			"src: %s(%s)\n"
 			"dest: %s(%s)\n", operation[op], sha, sip, tha, tip);
 
-	return buf;
+	return NULL; //there is no next header
 }
 
 
-char * eth_handle(const char * pkt, char * buf, int len)
+unsigned char * eth_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	struct ethhdr * eth = (struct ethhdr *)pkt;
 	unsigned char src[32], dst[32];
@@ -157,6 +157,6 @@ char * eth_handle(const char * pkt, char * buf, int len)
 
 	sprintf(buf, "-----ETHERNET-----\n"
 			"src: %s\tdest: %s\n", src, dst);
-	return buf;
+	return (unsigned char *)(eth + 1); //next header
 }
 
