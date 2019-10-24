@@ -1,9 +1,12 @@
 CC := gcc
+SRC := raw.c
+EXE := sniff
 
 default :
-	$(CC) raw.c
+	$(CC) $(SRC) -o $(EXE)
 
-
+clean :
+	rm $(EXE)
 
 #git add -A
 #git commit -m "file name"
