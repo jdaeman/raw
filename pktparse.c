@@ -1,13 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 #include <arpa/inet.h>
 #include <linux/tcp.h> //tcp header
 #include <linux/udp.h> //upd header
 #include <linux/icmp.h> //icmp header
 #include <linux/ip.h> //ip header
-#include <linux/if_ether.h> //ethernet header
 #include <linux/if_arp.h> //arp header
-
-#define BUF_SIZE 65536
+#include <linux/if_ether.h> //ethernet header
 
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
@@ -87,4 +86,77 @@ char * icmp_handle(const char * pkt, char * buf, int len)
 unknown_type:
 	sprintf(buf, "-----ICMP-Unknown type-----\n");
 	return buf;
-}	
+}
+
+char * ip_handle(const char * pkt, char * buf, int len)
+{
+	static const char * protocol[] = {"IP", "ICMP", "IGMP", "X", "IPIP", "X", "TCP", "X", "EGP",
+						"X", "X", "X", "PUP", "X", "X", "X", "X", "UDP"};
+
+	struct iphdr * ip = (struct iphdr *)pkt;
+	unsigned char ttl, proto;
+	unsigned short tot_len;
+	unsigned char src[16], dst[16];
+	
+	ttl = ip->ttl;
+	proto = ip->protocol;
+	tot_len = ntohs(ip->tot_len);
+	strcpy(src, inet_ntoa(*(struct in_addr *)&ip->saddr));
+	strcpy(dst, inet_ntoa(*(struct in_addr *)&ip->daddr));
+	
+	if (proto >= sizeof(protocol) / sizeof(char *))
+		proto = 0;
+
+	sprintf(buf, "-----IP-----\n"
+			"total_length: %u\n"
+			"ttl: %u\tprotocol: %s\n"
+			"src: %s\tdest: %s\n", tot_len, ttl, protocol[proto], src, dst);
+
+	return buf;
+}
+
+char * arp_handle(const char * pkt, char * buf, int len)
+{
+	static const char * operation[] = {"X", "Request", "Reply", "Reverse Request", "Reverse Reply"};
+	
+	struct arphdr * arp = (struct arphdr *)pkt;
+	unsigned short op;
+	unsigned char sha[32], tha[32];
+	unsigned char sip[16], tip[16];	
+	unsigned char * payload = (unsigned char *)(arp + 1);
+
+	op = ntohs(arp->ar_op);
+	strcpy(sha, ether_ntoa((struct ether_addr *)payload));
+	payload += 6;
+	strcpy(sip, inet_ntoa(*(struct in_addr *)payload));
+	payload += 4;
+	strcpy(tha, ether_ntoa((struct ether_addr *)payload));
+	payload += 6;
+	strcpy(tip, inet_ntoa(*(struct in_addr *)payload));
+
+	if (op >= sizeof(operation) / sizeof(char *))
+		op = 0;
+	
+	sprintf(buf, "-----ARP-%s-----\n"
+			"src: %s(%s)\n"
+			"dest: %s(%s)\n", operation[op], sha, sip, tha, tip);
+
+	return buf;
+}
+
+
+char * eth_handle(const char * pkt, char * buf, int len)
+{
+	struct ethhdr * eth = (struct ethhdr *)pkt;
+	unsigned char src[32], dst[32];
+	unsigned short proto;
+
+	strcpy(src, ether_ntoa((struct ether_addr *)eth->h_source));
+	strcpy(dst, ether_ntoa((struct ether_addr *)eth->h_dest));
+	proto = ntohs(eth->h_proto);
+
+	sprintf(buf, "-----ETHERNET-----\n"
+			"src: %s\tdest: %s\n", src, dst);
+	return buf;
+}
+
