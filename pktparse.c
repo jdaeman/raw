@@ -11,6 +11,9 @@
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
 
+typedef unsigned char * (*parse)(unsigned char *, unsigned char *, int);
+parse next = NULL;
+
 unsigned char * tcp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	static const char * flags[] = {"CWR", "ECE", "URG", "ACK",
@@ -28,12 +31,14 @@ unsigned char * tcp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	seq = ntohl(tcp->seq);
 	ack_seq = ntohl(tcp->ack_seq);
 	flag = ntohl(tcp->res1);
+
+	next = NULL;
 	
 	for (off = 0; flag & (1 << off); off++);
 	
 	sprintf(buf, "-----TCP-%s-----\n"
 			"source: %u\tdest: %u\n"
-			"seq: %u\tack_seq: %u\n",
+			"seq: %u\tack_seq: %u",
 			flags[off], src, dst, seq, ack_seq);
 	return (unsigned char *)(tcp + 1); //application data
 }
@@ -41,16 +46,17 @@ unsigned char * tcp_handle(unsigned char * pkt, unsigned char * buf, int len)
 unsigned char * udp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	struct udphdr * udp = (struct udphdr *)pkt;
-	unsigned short src, dst;
-	unsigned int length;
+	unsigned short src, dst, length;
 
 	src = ntohs(udp->source);
 	dst = ntohs(udp->dest);
-	length = ntohl(udp->len);
+	length = ntohs(udp->len);
+
+	next = NULL;
 
 	sprintf(buf, "-----UDP-----\n"
 			"soruce: %u\tdest: %u\n"
-			"length: %u\n", src, dst, length);
+			"length: %u", src, dst, length);
 	return (unsigned char *)(udp + 1); //application data
 }
 
@@ -70,6 +76,8 @@ unsigned char * icmp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	unsigned char type = icmp->type;
 	unsigned char code = icmp->code;
 
+	next = NULL;
+
 	if (type >= sizeof(type_to_row) / sizeof(int))
 		goto unknown_type;
 	else if (type_to_row[type] < 0)
@@ -79,12 +87,12 @@ unsigned char * icmp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	else
 	{
 		int row = type_to_row[type];
-		sprintf(buf, "-----ICMP-%s-----\n", description[row][code]);
+		sprintf(buf, "-----ICMP-%s-----", description[row][code]);
 		return (unsigned char *)(icmp + 1);
 	}
 
 unknown_type:
-	sprintf(buf, "-----ICMP-Unknown type-----\n");
+	sprintf(buf, "-----ICMP-Unknown type-----");
 	return (unsigned char *)(icmp + 1);
 }
 
@@ -103,6 +111,15 @@ unsigned char * ip_handle(unsigned char * pkt, unsigned char * buf, int len)
 	tot_len = ntohs(ip->tot_len);
 	strcpy(src, inet_ntoa(*(struct in_addr *)&ip->saddr));
 	strcpy(dst, inet_ntoa(*(struct in_addr *)&ip->daddr));
+
+	if (proto == IPPROTO_ICMP)
+		next = icmp_handle;
+	else if (proto == IPPROTO_TCP)
+		next = tcp_handle;
+	else if (proto == IPPROTO_UDP)
+		next = udp_handle;
+	else
+		next = NULL;
 	
 	if (proto >= sizeof(protocol) / sizeof(char *))
 		proto = 0;
@@ -110,7 +127,7 @@ unsigned char * ip_handle(unsigned char * pkt, unsigned char * buf, int len)
 	sprintf(buf, "-----IP-----\n"
 			"total_length: %u\n"
 			"ttl: %u\tprotocol: %s\n"
-			"src: %s\tdest: %s\n", tot_len, ttl, protocol[proto], src, dst);
+			"src: %s\tdest: %s", tot_len, ttl, protocol[proto], src, dst);
 
 	return (unsigned char *)(ip + 1); //next header
 }
@@ -134,12 +151,14 @@ unsigned char * arp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	payload += 6;
 	strcpy(tip, inet_ntoa(*(struct in_addr *)payload));
 
+	next = NULL;
+
 	if (op >= sizeof(operation) / sizeof(char *))
 		op = 0;
 	
 	sprintf(buf, "-----ARP-%s-----\n"
 			"src: %s(%s)\n"
-			"dest: %s(%s)\n", operation[op], sha, sip, tha, tip);
+			"dest: %s(%s)", operation[op], sha, sip, tha, tip);
 
 	return NULL; //there is no next header
 }
@@ -155,8 +174,15 @@ unsigned char * eth_handle(unsigned char * pkt, unsigned char * buf, int len)
 	strcpy(dst, ether_ntoa((struct ether_addr *)eth->h_dest));
 	proto = ntohs(eth->h_proto);
 
+	if (proto == ETH_P_IP)
+		next = ip_handle;
+	else if (proto == ETH_P_ARP)
+		next = arp_handle;
+	else
+		next = NULL;
+
 	sprintf(buf, "-----ETHERNET-----\n"
-			"src: %s\tdest: %s\n", src, dst);
+			"src: %s\tdest: %s", src, dst);
 	return (unsigned char *)(eth + 1); //next header
 }
 

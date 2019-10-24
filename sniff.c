@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <net/if.h>
-#include "pktparse.c"
+#include "pktparse.h"
 
 #define BUF_SIZE 65536
 
@@ -43,6 +43,7 @@ static void sniff_start(int sock)
 {
 	unsigned char buf[BUF_SIZE];
 	unsigned char parse[BUF_SIZE];
+	unsigned char * ptr;
 
 	while (1)
 	{
@@ -50,8 +51,18 @@ static void sniff_start(int sock)
 
 		if (rcvs < 0)
 			break;
-		eth_handle(buf, parse, BUF_SIZE);
-		printf("%s\n", parse);	
+
+		buf[rcvs] = 0;
+		ptr = eth_handle(buf, parse, BUF_SIZE);
+		printf("%s\n", parse);
+		while (ptr && next)
+		{
+			ptr = next(ptr, parse, BUF_SIZE);
+			printf("%s\n", parse);
+		}
+		if (ptr)
+			printf("-----payload-----\n%s\n", ptr);
+		puts("");	
 	}		
 }
 
