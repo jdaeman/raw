@@ -50,7 +50,7 @@ static void sniff_start(int sock)
 		int rcvs = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 
 		if (rcvs < 0)
-			break;
+			continue;
 
 		buf[rcvs] = 0;
 		ptr = eth_handle(buf, parse, BUF_SIZE);
@@ -93,8 +93,10 @@ int main(int argc, char ** argv[])
 		goto setsockopt_err;
 
 	if (argc == 1) //no filter
-	{
 		sniff_start(sniff_sock);
+	else
+	{
+		printf("implementing...\n");
 	}
 
 	close(sniff_sock);
