@@ -72,7 +72,7 @@ static void sniff_start(int sock)
 		int rcvs = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 
 		if (rcvs < 0)
-			break;
+			continue;
 
 		buf[rcvs] = 0;
 		ptr = eth_handle(buf, parse, BUF_SIZE);
@@ -104,6 +104,7 @@ static int socket_open(int interface_index)
 	if (bind(sniff_sock, (struct sockaddr *)&sll, sizeof(sll)) < 0)
 		goto bind_err;
 
+<<<<<<< HEAD
 	if (open_mode)
 	{
 		memset(&pm, 0, sizeof(pm));
@@ -111,6 +112,19 @@ static int socket_open(int interface_index)
 		pm.mr_type = PACKET_MR_PROMISC;
 		if (setsockopt(sniff_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &pm, sizeof(pm)) < 0)
 			goto setsockopt_err;
+=======
+	memset(&pm, 0, sizeof(pm));
+	pm.mr_ifindex = interface_index;
+	pm.mr_type = PACKET_MR_PROMISC;
+	if (setsockopt(sniff_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &pm, sizeof(pm)) < 0)
+		goto setsockopt_err;
+
+	if (argc == 1) //no filter
+		sniff_start(sniff_sock);
+	else
+	{
+		printf("implementing...\n");
+>>>>>>> 5bf6e5113588e9888120067307642bb08477f959
 	}
 
 	return sniff_sock;

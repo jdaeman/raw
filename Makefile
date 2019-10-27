@@ -13,3 +13,7 @@ clean :
 #git add -A
 #git commit -m "file name"
 #git push
+
+#git pull
+
+#git clone https://github.com/jdaeman/raw.git
