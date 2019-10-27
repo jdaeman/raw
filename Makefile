@@ -1,9 +1,11 @@
 CC := gcc
-SRC := raw.c
+SRC := sniff.c pktparse.c
 EXE := sniff
 
 default :
 	$(CC) $(SRC) -o $(EXE)
+
+
 
 clean :
 	rm $(EXE)
