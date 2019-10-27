@@ -24,13 +24,34 @@ static void param_parse(int argc, char * argv[])
 		{	
 			if (!strcmp(argv[idx], "promisc"))
 				open_mode = 1;
-			else
+			else if (!strcmp(argv[idx], "arp"))
 			{
-				printf("Invalid parameter: %s\n", argv[idx]);
-				exit(-1);
+
 			}
+			else if (!strcmp(argv[idx], "ip"))
+			{
+
+			}
+			else if (!strcmp(argv[idx], "icmp"))
+			{
+			
+			}
+			else if (!strcmp(argv[idx], "tcp"))
+			{
+
+			}
+			else
+				goto invalid_type;
 		}
+
+	
 	}
+
+	return;
+
+invalid_type:
+	printf("Invalid parameter\n");
+	exit(-1);
 }
 
 static int get_nic_index()
@@ -71,7 +92,7 @@ static void sniff_start(int sock)
 	{
 		int rcvs = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 
-		if (rcvs < 0)
+		if (rcvs <= 0)
 			continue;
 
 		buf[rcvs] = 0;
@@ -104,7 +125,6 @@ static int socket_open(int interface_index)
 	if (bind(sniff_sock, (struct sockaddr *)&sll, sizeof(sll)) < 0)
 		goto bind_err;
 
-<<<<<<< HEAD
 	if (open_mode)
 	{
 		memset(&pm, 0, sizeof(pm));
@@ -112,19 +132,6 @@ static int socket_open(int interface_index)
 		pm.mr_type = PACKET_MR_PROMISC;
 		if (setsockopt(sniff_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &pm, sizeof(pm)) < 0)
 			goto setsockopt_err;
-=======
-	memset(&pm, 0, sizeof(pm));
-	pm.mr_ifindex = interface_index;
-	pm.mr_type = PACKET_MR_PROMISC;
-	if (setsockopt(sniff_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &pm, sizeof(pm)) < 0)
-		goto setsockopt_err;
-
-	if (argc == 1) //no filter
-		sniff_start(sniff_sock);
-	else
-	{
-		printf("implementing...\n");
->>>>>>> 5bf6e5113588e9888120067307642bb08477f959
 	}
 
 	return sniff_sock;
@@ -153,10 +160,9 @@ int main(int argc, char * argv[])
 	
 	sniff_sock = socket_open(interface_index);
 
-	if (open_mode == 0 || open_mode == 1) //no filter
-		sniff_start(sniff_sock);
-
+	sniff_start(sniff_sock);
 
 	close(sniff_sock);
+
 	return 0;
 }

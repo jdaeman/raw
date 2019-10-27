@@ -23,18 +23,19 @@ unsigned char * tcp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	struct tcphdr * tcp = (struct tcphdr *)pkt;
 	unsigned short src, dst;
 	unsigned int seq, ack_seq;
-	unsigned short flag;	
+	unsigned short flag = *((unsigned short *)(pkt + 4 + 8));	
 	int off;
 
 	src = ntohs(tcp->source);
 	dst = ntohs(tcp->dest);
 	seq = ntohl(tcp->seq);
 	ack_seq = ntohl(tcp->ack_seq);
-	flag = ntohl(tcp->res1);
+	//flag = ntohs(flag);
 
 	next = NULL;
-	
-	for (off = 0; flag & (1 << off); off++);
+
+	for (off = 0; off < 16 && (flag & (1 << off)) != 1; off++);
+	printf("flag: %u, off: %d\n", flag, off);
 	
 	sprintf(buf, "-----TCP-%s-----\n"
 			"source: %u\tdest: %u\n"
