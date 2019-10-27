@@ -11,6 +11,28 @@
 
 #define BUF_SIZE 65536
 
+static int open_mode;
+
+static void param_parse(int argc, char * argv[])
+{
+	if (argc <= 1)
+		open_mode = 0;
+	else
+	{
+		int idx = 1;
+		for ( ; idx < argc; idx++)
+		{	
+			if (!strcmp(argv[idx], "promisc"))
+				open_mode = 1;
+			else
+			{
+				printf("Invalid parameter: %s\n", argv[idx]);
+				exit(-1);
+			}
+		}
+	}
+}
+
 static int get_nic_index()
 {
 	struct if_nameindex * if_arr, * itf;
@@ -66,16 +88,12 @@ static void sniff_start(int sock)
 	}		
 }
 
-int main(int argc, char ** argv[])
+static int socket_open(int interface_index)
 {
-	int sniff_sock;
 	struct sockaddr_ll sll;
 	struct packet_mreq pm;
-	int interface_index;
 	
-	interface_index = get_nic_index();
-
-	sniff_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+	int sniff_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sniff_sock < 0)
 		goto socket_err;
 	
@@ -86,29 +104,45 @@ int main(int argc, char ** argv[])
 	if (bind(sniff_sock, (struct sockaddr *)&sll, sizeof(sll)) < 0)
 		goto bind_err;
 
-	memset(&pm, 0, sizeof(pm));
-	pm.mr_ifindex = interface_index;
-	pm.mr_type = PACKET_MR_PROMISC;
-	if (setsockopt(sniff_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &pm, sizeof(pm)) < 0)
-		goto setsockopt_err;
-
-	if (argc == 1) //no filter
+	if (open_mode)
 	{
-		sniff_start(sniff_sock);
+		memset(&pm, 0, sizeof(pm));
+		pm.mr_ifindex = interface_index;
+		pm.mr_type = PACKET_MR_PROMISC;
+		if (setsockopt(sniff_sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &pm, sizeof(pm)) < 0)
+			goto setsockopt_err;
 	}
 
-	close(sniff_sock);
-	return 0;
+	return sniff_sock;
 
 setsockopt_err:
 	perror("setsockopt() error");
 	close(sniff_sock);
-	return -1;
+	exit(-1);
 bind_err:
 	perror("bind() error");
 	close(sniff_sock);
-	return -1;
+	exit(-1);
 socket_err:
 	perror("socket() error");
-	return -1;
+	exit(-1);
+}
+
+int main(int argc, char * argv[])
+{
+	int sniff_sock;
+	int interface_index;
+	
+	param_parse(argc, argv);
+
+	interface_index = get_nic_index();
+	
+	sniff_sock = socket_open(interface_index);
+
+	if (open_mode == 0 || open_mode == 1) //no filter
+		sniff_start(sniff_sock);
+
+
+	close(sniff_sock);
+	return 0;
 }

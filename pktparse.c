@@ -87,12 +87,13 @@ unsigned char * icmp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	else
 	{
 		int row = type_to_row[type];
-		sprintf(buf, "-----ICMP-%s-----", description[row][code]);
+		sprintf(buf, "-----ICMP-%s[%u][%u]-----", description[row][code], 
+							type, code);
 		return (unsigned char *)(icmp + 1);
 	}
 
 unknown_type:
-	sprintf(buf, "-----ICMP-Unknown type-----");
+	sprintf(buf, "-----ICMP-Unknown type[%u][%u]-----", type, code);
 	return (unsigned char *)(icmp + 1);
 }
 
