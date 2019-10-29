@@ -8,7 +8,7 @@ ARP_EXE := arp
 sniff :
 	$(CC) $(SRC) -o $(EXE)
 
-arp :
+arp : $(ARP_SRC)
 	$(CC) $(ARP_SRC) -o $(ARP_EXE)
 
 clean :
