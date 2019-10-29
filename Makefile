@@ -2,13 +2,17 @@ CC := gcc
 SRC := sniff.c pktparse.c
 EXE := sniff
 
-default :
+ARP_SRC := arp.c
+ARP_EXE := arp
+
+sniff :
 	$(CC) $(SRC) -o $(EXE)
 
-
+arp :
+	$(CC) $(ARP_SRC) -o $(ARP_EXE)
 
 clean :
-	rm $(EXE)
+	rm -f $(EXE) $(ARP_EXE)
 
 #git add -A
 #git commit -m "file name"
