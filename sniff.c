@@ -10,11 +10,15 @@
 #include "pktparse.h"
 
 #define BUF_SIZE 65536
+#define PARSE_SIZE 1024
 
 static int open_mode;
 
 static void param_parse(int argc, char * argv[])
 {
+	int list[12];
+	int len = 0;
+
 	if (argc <= 1)
 		open_mode = 0;
 	else
@@ -26,19 +30,19 @@ static void param_parse(int argc, char * argv[])
 				open_mode = 1;
 			else if (!strcmp(argv[idx], "arp"))
 			{
-
-			}
-			else if (!strcmp(argv[idx], "ip"))
-			{
-
+				list[len++] = ARP;	
 			}
 			else if (!strcmp(argv[idx], "icmp"))
 			{
-			
+				list[len++] = ICMP;
+			}
+			else if (!strcmp(argv[idx], "udp"))
+			{
+				list[len++] = UDP;
 			}
 			else if (!strcmp(argv[idx], "tcp"))
 			{
-
+				list[len++] = TCP;
 			}
 			else
 				goto invalid_type;
@@ -47,6 +51,7 @@ static void param_parse(int argc, char * argv[])
 	
 	}
 
+	set_filter(list, len);
 	return;
 
 invalid_type:
@@ -72,7 +77,7 @@ static int get_nic_index()
 	
 	if_freenameindex(if_arr);
 
-	printf("\nChoose interface index\n>>");
+	printf("\nChoose interface index\n>> ");
 	scanf("%d", &index);
 
 	return index;
@@ -84,28 +89,32 @@ err:
 
 static void sniff_start(int sock)
 {
-	unsigned char buf[BUF_SIZE];
-	unsigned char parse[BUF_SIZE];
+	static unsigned char buf[BUF_SIZE];
+	unsigned char parse[5][PARSE_SIZE];
 	unsigned char * ptr;
-
+	
 	while (1)
 	{
+		int layer = 0;
 		int rcvs = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 
 		if (rcvs <= 0)
 			continue;
 
 		buf[rcvs] = 0;
-		ptr = eth_handle(buf, parse, BUF_SIZE);
-		printf("%s\n", parse);
+		ptr = eth_handle(buf, parse[layer++], PARSE_SIZE);
 		while (ptr && next)
+			ptr = next(ptr, parse[layer++], PARSE_SIZE);
+
+		if (is_avail())
 		{
-			ptr = next(ptr, parse, BUF_SIZE);
-			printf("%s\n", parse);
-		}
-		if (ptr)
-			printf("-----payload-----\n%s\n", ptr);
-		puts("");	
+			int cur = 0;
+			for (; cur < layer; cur++)
+				printf("%s\n", parse[cur]);
+			if (ptr)	
+				printf("-----payload-----\n%s\n", ptr);
+			puts("");
+		}	
 	}		
 }
 
