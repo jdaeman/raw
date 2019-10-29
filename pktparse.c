@@ -7,6 +7,7 @@
 #include <linux/ip.h> //ip header
 #include <linux/if_arp.h> //arp header
 #include <linux/if_ether.h> //ethernet header
+#include "pktparse.h"
 
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
@@ -14,28 +15,33 @@ extern char * ether_ntoa(struct ether_addr *); //library fucntion
 typedef unsigned char * (*parse)(unsigned char *, unsigned char *, int);
 parse next = NULL;
 
+static int final = 0;
+static int filter_list[20];
+
 unsigned char * tcp_handle(unsigned char * pkt, unsigned char * buf, int len)
 {
 	static const char * flags[] = {"CWR", "ECE", "URG", "ACK",
 					"PSH", "RST", "SYN", "FIN",
-					"DOFF", "X", "X", "RES1"};
+					"DOFF", "DOFF", "DOFF", "DOFF",
+					"RES1", "RES1", "RES1", "RES1"};
 
 	struct tcphdr * tcp = (struct tcphdr *)pkt;
 	unsigned short src, dst;
 	unsigned int seq, ack_seq;
-	unsigned short flag = *((unsigned short *)(pkt + 4 + 8));	
+	unsigned short flag = *((unsigned short *)(pkt + 4 + 8));
 	int off;
 
 	src = ntohs(tcp->source);
 	dst = ntohs(tcp->dest);
 	seq = ntohl(tcp->seq);
 	ack_seq = ntohl(tcp->ack_seq);
-	//flag = ntohs(flag);
+	flag = ntohs(flag);
+	//several flag options
 
 	next = NULL;
+	final = TCP;
 
-	for (off = 0; off < 16 && (flag & (1 << off)) != 1; off++);
-	printf("flag: %u, off: %d\n", flag, off);
+	for (off = 0; (flag & (1 << off)) == 0; off++);
 	
 	sprintf(buf, "-----TCP-%s-----\n"
 			"source: %u\tdest: %u\n"
@@ -54,6 +60,7 @@ unsigned char * udp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	length = ntohs(udp->len);
 
 	next = NULL;
+	final = UDP;
 
 	sprintf(buf, "-----UDP-----\n"
 			"soruce: %u\tdest: %u\n"
@@ -78,6 +85,7 @@ unsigned char * icmp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	unsigned char code = icmp->code;
 
 	next = NULL;
+	final = ICMP;
 
 	if (type >= sizeof(type_to_row) / sizeof(int))
 		goto unknown_type;
@@ -122,6 +130,7 @@ unsigned char * ip_handle(unsigned char * pkt, unsigned char * buf, int len)
 		next = udp_handle;
 	else
 		next = NULL;
+		
 	
 	if (proto >= sizeof(protocol) / sizeof(char *))
 		proto = 0;
@@ -154,6 +163,7 @@ unsigned char * arp_handle(unsigned char * pkt, unsigned char * buf, int len)
 	strcpy(tip, inet_ntoa(*(struct in_addr *)payload));
 
 	next = NULL;
+	final = ARP;
 
 	if (op >= sizeof(operation) / sizeof(char *))
 		op = 0;
@@ -176,6 +186,8 @@ unsigned char * eth_handle(unsigned char * pkt, unsigned char * buf, int len)
 	strcpy(dst, ether_ntoa((struct ether_addr *)eth->h_dest));
 	proto = ntohs(eth->h_proto);
 
+	final = 0;
+
 	if (proto == ETH_P_IP)
 		next = ip_handle;
 	else if (proto == ETH_P_ARP)
@@ -188,3 +200,34 @@ unsigned char * eth_handle(unsigned char * pkt, unsigned char * buf, int len)
 	return (unsigned char *)(eth + 1); //next header
 }
 
+void set_filter(int * list, int len)
+{
+	int idx;
+
+	memset(filter_list, 0, sizeof(filter_list));
+	if (len == 0)
+	{
+		filter_list[0] = 1; //ALL
+		return;
+	}
+
+	for (idx = 0; idx < len; idx++)
+	{
+		int proto = list[idx];
+		filter_list[proto] = 1;
+	}
+
+}
+
+int is_avail()
+{
+	int idx;
+
+	if (filter_list[0])
+		return 1;
+	else if (filter_list[final])
+		return 1;
+	else
+		return 0;
+
+} 
