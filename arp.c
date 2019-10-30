@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <linux/if_ether.h>
 #include <linux/if_arp.h>
+#include "pktparse.h"
 
 #define BUF_SIZE 65536
 
@@ -120,48 +121,108 @@ out_of_bound:
 	exit(-1);
 }
 
+unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsigned char * target, unsigned int dest)
+{
+	unsigned char * ptr;
+	struct ethhdr * eth;
+	struct arphdr * arp;
+
+	eth = (struct ethhdr *)buf;
+	//set ethernet header
+	memcpy(eth->h_source, this.mac, 6); //MAC address length
+	if (!target)
+		memset(eth->h_dest, 0xff, 6);
+	else
+		memcpy(eth->h_dest, target, 6);
+	eth->h_proto = htons(ETH_P_ARP);
+
+	arp = (struct arphdr *)(eth + 1);
+	//set arp header
+	arp->ar_hrd = htons(1); //Ethernet
+	arp->ar_pro = htons(ETH_P_IP); //IPv4
+	arp->ar_hln = 6;
+	arp->ar_pln = 4;
+	arp->ar_op = htons(op);
+
+	ptr = (unsigned char *)(arp + 1);
+	//payload
+	memcpy(ptr, this.mac, 6); //sha
+	ptr += 6;
+	memcpy(ptr, &this.ip, 4); //spa
+	ptr += 4;
+	if (!target) //tha
+		memset(ptr, 0, 6);
+	else
+		memcpy(ptr, target, 6);
+	ptr += 6;
+	memcpy(ptr, &target, 4); //tpa
+}
+
+
+void reply_handle(int sock)
+{
+	unsigned char buf[BUF_SIZE], * ptr;
+	struct arphdr * arp;
+
+	static unsigned char host_list[65536];
+	memset(host_list, 0, sizeof(host_list));
+
+	while (1)
+	{
+		int len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
+		unsigned int host;
+
+		if (len < 0)
+			perror("recvfrom() error\n");
+		if (len == 0)
+			continue;
+
+		buf[len] = 0;
+		ptr = buf;
+		ptr += sizeof(struct ethhdr);
+		arp = (struct arphdr *)ptr;
+		
+		if (ntohs(arp->ar_op) != ARPOP_REPLY)
+			continue;
+
+		ptr += sizeof(struct arphdr);
+		ptr += 6;
+
+		host = (*(unsigned int *)ptr);
+		host = ntohl(host & ~this.subnet);
+		if (host_list[host])
+			continue;
+
+		printf("%s is alive\n", inet_ntoa(*(struct in_addr *)ptr));
+		host_list[host] = 1;
+	}	
+
+	close(sock);
+	exit(0);
+}
+
 void scanning(int tmp)
 {
 	unsigned int host = 1;
 	unsigned int network_addr = this.ip & this.subnet;
 	unsigned int target;
 	int arp_sock;
-	unsigned char buf[BUF_SIZE], * ptr;
+	unsigned char buf[BUF_SIZE];
 	struct ethhdr * eth;
 	struct arphdr * arp;
 
 	arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+	if (fork())
+		reply_handle(arp_sock);
 
-{
-
-	target = network_addr | htonl(host++);
-	eth = (struct ethhdr *)buf;
+	while (1)
+	{
+		target = network_addr | htonl(host++);
+		create_arp_packet(buf, ARPOP_REQUEST, NULL, target);
+		send(arp_sock, buf, sizeof(struct ethhdr) + sizeof(struct arphdr) + 20, 0);
+	}
 	
-	memcpy(eth->h_source, this.mac, sizeof(eth->h_source));
-	memset(eth->h_dest, 0xff, sizeof(eth->h_dest));
-	eth->h_proto = htons(ETH_P_ARP);
-
-	arp = (struct arphdr *)(eth + 1);
-
-	arp->ar_hrd = htons(1); //Ethernet
-	arp->ar_pro = htons(ETH_P_IP); //IPv4
-	arp->ar_hln = 6;
-	arp->ar_pln = 4;
-	arp->ar_op = htons(ARPOP_REQUEST);
-
-	ptr = (unsigned char *)(arp + 1); //sha
-	memcpy(ptr, this.mac, 6);
-
-	ptr += 6; //spa
-	memcpy(ptr, &this.ip, 4);
-
-	ptr += 4; //tha
-	memset(ptr, 0, 6);	
-
-	ptr += 6; //tpa
-	memcpy(ptr, &target, 4);
-}
-	
+	close(arp_sock);
 }
 
 void spoofing(int tmp)
@@ -176,6 +237,5 @@ int main(int argc, char * argv[])
 	init_base();
 	actions[action](0);	
 	
-
 	return 0;
 }

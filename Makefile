@@ -2,7 +2,7 @@ CC := gcc
 SRC := sniff.c pktparse.c
 EXE := sniff
 
-ARP_SRC := arp.c
+ARP_SRC := arp.c pktparse.c
 ARP_EXE := arp
 
 sniff : $(SRC)
