@@ -5,7 +5,7 @@ EXE := sniff
 ARP_SRC := arp.c
 ARP_EXE := arp
 
-sniff :
+sniff : $(SRC)
 	$(CC) $(SRC) -o $(EXE)
 
 arp : $(ARP_SRC)
