@@ -10,7 +10,8 @@
 #include <sys/ioctl.h>
 #include <linux/if_ether.h>
 #include <linux/if_arp.h>
-#include "pktparse.h"
+#include <signal.h>
+#include <sys/wait.h>
 
 #define BUF_SIZE 65536
 
@@ -23,8 +24,8 @@ typedef struct
 
 typedef void (*routine)(int);
 
-void scanning(int tmp);
-void spoofing(int tmp);
+void scanning(int);
+void spoofing(int);
 
 static host this;
 static unsigned int gateway;
@@ -56,7 +57,7 @@ void param_parse(int argc, char * argv[])
 		}
 		else if (!strcmp(argv[idx], "spoof"))
 		{
-			action = 0;
+			action = 1;
 		}
 		else
 		{
@@ -66,7 +67,7 @@ void param_parse(int argc, char * argv[])
 	}	
 }
 
-void init_base()
+int init_base()
 {
 	struct if_nameindex * if_arr, * itf;
 	struct ifreq ifr;
@@ -102,13 +103,8 @@ void init_base()
 	ioctl(sock, SIOCGIFHWADDR, &ifr);
 	memcpy(this.mac, &ifr.ifr_hwaddr.sa_data, sizeof(this.mac));
 
-	/*printf("%s\n", inet_ntoa(*(struct in_addr *)&this.ip));
-	printf("%s\n", inet_ntoa(*(struct in_addr *)&this.subnet));
-	printf("%x:%x:%x:%x:%x:%x\n", this.mac[0],this.mac[1],this.mac[2],this.mac[3],this.mac[4],this.mac[5]);
-	*/
-
 	close(sock);
-	return;
+	return index + 1;
 
 socket_err:
 	perror("socket() error");
@@ -155,7 +151,7 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsign
 	else
 		memcpy(ptr, target, 6);
 	ptr += 6;
-	memcpy(ptr, &target, 4); //tpa
+	memcpy(ptr, &dest, 4); //tpa
 }
 
 
@@ -181,7 +177,7 @@ void reply_handle(int sock)
 		ptr = buf;
 		ptr += sizeof(struct ethhdr);
 		arp = (struct arphdr *)ptr;
-		
+	
 		if (ntohs(arp->ar_op) != ARPOP_REPLY)
 			continue;
 
@@ -201,27 +197,41 @@ void reply_handle(int sock)
 	exit(0);
 }
 
-void scanning(int tmp)
+void scanning(int idx)
 {
 	unsigned int host = 1;
 	unsigned int network_addr = this.ip & this.subnet;
 	unsigned int target;
-	int arp_sock;
+	int arp_sock, pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
+	unsigned int max;
+	pid_t cp;
 	unsigned char buf[BUF_SIZE];
 	struct ethhdr * eth;
 	struct arphdr * arp;
+	struct sockaddr_ll device;
 
 	arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	if (fork())
+	cp = fork();
+	if (!cp) //child process
 		reply_handle(arp_sock);
 
-	while (1)
+	memset(&device, 0, sizeof(device));
+	device.sll_ifindex = idx;
+	device.sll_halen = ETH_ALEN;
+	memcpy(device.sll_addr, this.mac, 6);
+
+	max = ntohl(~this.subnet);
+
+	while (host <= max)
 	{
 		target = network_addr | htonl(host++);
 		create_arp_packet(buf, ARPOP_REQUEST, NULL, target);
-		send(arp_sock, buf, sizeof(struct ethhdr) + sizeof(struct arphdr) + 20, 0);
+		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 	}
 	
+	sleep(1);
+	kill(cp, SIGKILL);
+	waitpid(cp, NULL, 0);	
 	close(arp_sock);
 }
 
@@ -233,9 +243,11 @@ void spoofing(int tmp)
 
 int main(int argc, char * argv[])
 {
+	int idx;
+
 	param_parse(argc, argv);
-	init_base();
-	actions[action](0);	
+	idx = init_base();
+	actions[action](idx);	
 	
 	return 0;
 }
