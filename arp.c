@@ -130,7 +130,9 @@ out_of_bound:
 	exit(-1);
 }
 
-unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsigned char * target, unsigned int dest)
+unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, 
+				unsigned char * host, unsigned int src,
+				unsigned char * target, unsigned int dest)
 {
 	unsigned char * ptr;
 	struct ethhdr * eth;
@@ -138,7 +140,7 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsign
 
 	eth = (struct ethhdr *)buf;
 	//set ethernet header
-	memcpy(eth->h_source, this.mac, 6); //MAC address length
+	memcpy(eth->h_source, host, 6); //MAC address length
 	if (!target)
 		memset(eth->h_dest, 0xff, 6); //broadcast
 	else
@@ -155,9 +157,9 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsign
 
 	ptr = (unsigned char *)(arp + 1);
 	//payload
-	memcpy(ptr, this.mac, 6); //sha
+	memcpy(ptr, host, 6); //sha
 	ptr += 6;
-	memcpy(ptr, &this.ip, 4); //spa
+	memcpy(ptr, &src, 4); //spa
 	ptr += 4;
 	if (!target) //tha
 		memset(ptr, 0, 6); //unknown
@@ -242,7 +244,7 @@ void scanning(int idx)
 	while (host <= max)
 	{
 		target = network_addr | htonl(host++);
-		create_arp_packet(buf, ARPOP_REQUEST, NULL, target);
+		create_arp_packet(buf, ARPOP_REQUEST, this.mac, this.ip, NULL, target);
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 	}
 	

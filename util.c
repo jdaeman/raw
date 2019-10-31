@@ -8,6 +8,55 @@
 
 #define BUF_SIZE 8192
 
+static int send_request(int nl_sock, int type, int * nlseq)
+{
+	struct nlmsghdr * nlmsg;
+	unsigned char buf[BUF_SIZE];
+
+	memset(buf, 0, BUF_SIZE);
+	nlmsg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg)); //routing message
+	nlmsg->nlmsg_type = type;
+	nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST; //maybe default?
+	nlmsg->nlmsg_seq = (*nlseq)++; //sequence
+	nlmsg->nlmsg_pid = getpid(); //for distinguish
+
+	return send(nl_slck, buf, nlmsg->nlmsg_len, 0);
+}
+
+static int recv_response(int nl_sock, unsigned char * buf, int nlseq)
+{
+	unsigned char * ptr;
+	int len, tot_len = 0;
+	struct nlmsghdr * nlmsg;
+	pid_t pid = getpid();
+
+	ptr = buf;
+	do
+	{
+		//receive the response
+		len = recv(nl_sock, ptr, BUF_SIZE - tot_len, 0);
+
+		if (len < 0)
+			goto err_handle;
+
+		nlmsg = (struct nlmsghdr *)ptr;
+		if (NLMSG_OK(nlmsg, len) == 0)
+			return -1;
+		if (nlmsg->nlmsg_type == NLMSG_ERROR)
+			return -1;
+		if (nlmsg->nlmsg_type == NLMSG_DONE)
+			break;
+
+		ptr += len; //next
+		tot_len += len;
+		
+		if ((nlmsg->nlmsg_flags & NLM_F_MULTI) == 0) //??
+			break; 		
+	} while (nlmsg->nlmsg_seq != nlseq || nlmsg->nlmsg_pid != pid);
+
+	return 0;
+}
+
 int get_gateway(unsigned int * ip, unsigned char * mac)
 {
 	int nl_sock;
