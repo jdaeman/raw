@@ -12,6 +12,7 @@
 #include <linux/if_arp.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <pthread.h>
 #include "util.h"
 
 #define BUF_SIZE 65536
@@ -26,7 +27,6 @@ typedef struct
 	unsigned char mac[6];
 }host;
 
-
 typedef void (*routine)(int);
 
 void scanning(int);
@@ -37,6 +37,8 @@ static host gateway;
 
 static routine actions[3] = {scanning, spoofing, NULL};
 static int action = 0;
+
+static host * host_list[65536];
 
 void param_parse(int argc, char * argv[])
 {
@@ -171,18 +173,18 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op,
 	return buf;
 }
 
-void reply_handle(int sock)
+void * reply_handle(void * arg)
 {
 	unsigned char buf[BUF_SIZE], * ptr;
 	struct arphdr * arp;
 
-	static unsigned char host_list[65536];
-	memset(host_list, 0, sizeof(host_list));
+	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 
 	while (1)
 	{
 		int len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
-		unsigned int host;
+		unsigned int nr;
+		host * target;
 
 		if (len <= 0)
 		{
@@ -201,18 +203,23 @@ void reply_handle(int sock)
 		ptr += sizeof(struct arphdr);
 		ptr += 6; //spa
 
-		host = (*(unsigned int *)ptr);
-		host = ntohl(host & ~this.subnet);
-		if (host_list[host])
+		nr = (*(unsigned int *)ptr);
+		nr = ntohl(nr & ~this.subnet);
+		if (host_list[nr])
 			continue;
+
+		host_list[nr] = (host *)malloc(sizeof(host));
+		target = host_list[nr];
 
 		printf("%s[%s] is alive\n", inet_ntoa(*(struct in_addr *)ptr), 
 				ether_ntoa((struct ether_addr *)(ptr - 6)));
-		host_list[host] = 1;
+
+		memcpy(&target->ip, ptr, 4);
+		memcpy(target->mac, ptr - 6, 6);
 	}	
 
 	close(sock);
-	exit(0);
+	return NULL;
 }
 
 void scanning(int idx)
@@ -222,22 +229,17 @@ void scanning(int idx)
 	unsigned int target;
 	int arp_sock, pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
 	unsigned int max;
-	pid_t cp;
+	pthread_t tid;
 	unsigned char buf[BUF_SIZE];
-	struct ethhdr * eth;
-	struct arphdr * arp;
 	struct sockaddr_ll device;
 
 	arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	cp = fork();
-	if (!cp) //child process
-		reply_handle(arp_sock);
+	pthread_create(&tid, NULL, reply_handle, NULL);
 
 	memset(&device, 0, sizeof(device));
 	device.sll_ifindex = idx;
 	device.sll_halen = ETH_ALEN;
 	memset(device.sll_addr, 0xff, 6);
-	//memcpy(device.sll_addr, this.mac, 6);
 
 	max = ntohl(~this.subnet); //maximum host number
 
@@ -248,15 +250,32 @@ void scanning(int idx)
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 	}
 	
-	sleep(1); //wait reply packets,
-	kill(cp, SIGKILL);
-	waitpid(cp, NULL, 0);
+	sleep(1); //wait any reply packets,
+	pthread_cancel(tid);
 	close(arp_sock);
 }
 
 void spoofing(int idx)
 {
-	printf("spoofing\n");
+	int t;
+	unsigned char buf[BUF_SIZE];
+
+	scanning(idx);
+	//reply_handle() thread
+	for (t = 1; t <= 65536; t++)
+	{	
+		if (t == 65536)
+		{
+			t = 0;
+			continue;
+		}
+
+		if (!host_list[t])
+			continue;
+
+		//create_arp_packet();
+		//arp_send();
+	}
 }
 
 int main(int argc, char * argv[])
@@ -269,5 +288,11 @@ int main(int argc, char * argv[])
 
 	actions[action](idx);	
 	
+	for (idx = 0; idx < 65536; idx++)
+	{
+		if (host_list[idx])
+			free(host_list[idx]);
+	}
+
 	return 0;
 }

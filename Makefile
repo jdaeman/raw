@@ -9,7 +9,7 @@ sniff : $(SRC)
 	$(CC) $(SRC) -o $(EXE)
 
 arp : $(ARP_SRC)
-	$(CC) $(ARP_SRC) -o $(ARP_EXE)
+	$(CC) $(ARP_SRC) -o $(ARP_EXE) -lpthread
 
 clean :
 	rm -f $(EXE) $(ARP_EXE)
