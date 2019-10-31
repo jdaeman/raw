@@ -13,6 +13,7 @@ static int send_request(int nl_sock, int type, int * nlseq)
 	struct nlmsghdr * nlmsg;
 	unsigned char buf[BUF_SIZE];
 
+	nlmsg = (struct nlmsghdr *)buf;
 	memset(buf, 0, BUF_SIZE);
 	nlmsg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg)); //routing message
 	nlmsg->nlmsg_type = type;
@@ -20,7 +21,7 @@ static int send_request(int nl_sock, int type, int * nlseq)
 	nlmsg->nlmsg_seq = (*nlseq)++; //sequence
 	nlmsg->nlmsg_pid = getpid(); //for distinguish
 
-	return send(nl_slck, buf, nlmsg->nlmsg_len, 0);
+	return send(nl_sock, buf, nlmsg->nlmsg_len, 0);
 }
 
 static int recv_response(int nl_sock, unsigned char * buf, int nlseq)
@@ -37,7 +38,7 @@ static int recv_response(int nl_sock, unsigned char * buf, int nlseq)
 		len = recv(nl_sock, ptr, BUF_SIZE - tot_len, 0);
 
 		if (len < 0)
-			goto err_handle;
+			return -1;
 
 		nlmsg = (struct nlmsghdr *)ptr;
 		if (NLMSG_OK(nlmsg, len) == 0)
@@ -53,6 +54,59 @@ static int recv_response(int nl_sock, unsigned char * buf, int nlseq)
 		if ((nlmsg->nlmsg_flags & NLM_F_MULTI) == 0) //??
 			break; 		
 	} while (nlmsg->nlmsg_seq != nlseq || nlmsg->nlmsg_pid != pid);
+
+	return tot_len;
+}
+
+static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, unsigned char * mac)
+{
+	struct nlmsghdr * nlmsg;
+	struct rtmsg * rtmsg;
+	struct ndmsg * ndmsg;
+	struct rtattr * attr;
+	unsigned int tmp = 0, len;
+
+	nlmsg = (struct nlmsghdr *)buf;
+	for (; NLMSG_OK(nlmsg, tot_len); nlmsg = NLMSG_NEXT(nlmsg, tot_len))
+	{
+		if (!mac)
+		{
+			rtmsg = (struct rtmsg *)(NLMSG_DATA(nlmsg));
+
+			if (rtmsg->rtm_family != PF_INET || rtmsg->rtm_table != RT_TABLE_MAIN)
+				continue;
+			attr = (struct rtattr *)(RTM_RTA(rtmsg));
+		}
+		else
+		{
+			ndmsg = (struct ndmsg *)(NLMSG_DATA(nlmsg));
+		
+			if (ndmsg->ndm_family != PF_INET)
+				continue;
+			attr = (struct rtattr *)(RTM_RTA(ndmsg));
+		}
+
+		len = RTM_PAYLOAD(nlmsg);
+		for (; RTA_OK(attr, len); attr = RTA_NEXT(attr, len))
+		{
+			if (!mac)
+			{
+				if (attr->rta_type != RTA_GATEWAY)
+					continue;
+				memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
+				break;
+			}
+			else
+			{
+				if (tmp == *ip && attr->rta_type == NDA_LLADDR)
+					memcpy(mac, RTA_DATA(attr), 6);
+				if (attr->rta_type == NDA_DST)
+					memcpy(&tmp, (unsigned int *)RTA_DATA(attr), 4);
+				//printf("%x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+			}
+		}
+
+	}
 
 	return 0;
 }
@@ -71,43 +125,22 @@ int get_gateway(unsigned int * ip, unsigned char * mac)
 	if (nl_sock < 0)
 		return -1; //perror
 	
-	memset(buf, 0, BUF_SIZE);
-	nlmsg = (struct nlmsghdr *)buf;
-	nlmsg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg)); //routing message
-	nlmsg->nlmsg_type = RTM_GETNEIGH; //get neighbours
-	nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST; //maybe default?
-	nlmsg->nlmsg_seq = nlseq++; //sequence
-	nlmsg->nlmsg_pid = getpid(); //for distinguish
+	//phase1, find default gateway ip address
+	if (send_request(nl_sock, RTM_GETROUTE, &nlseq) < 0)
+		goto err_handle;
+	if ((msg_len = recv_response(nl_sock, buf, nlseq)) < 0)
+		goto err_handle;
+	parse_response(buf, msg_len, ip, NULL);	
 
-	if (send(nl_sock, buf, nlmsg->nlmsg_len, 0) < 0) //send the request
-		goto err_handle; //perror
-
-	ptr = buf;
-	do
-	{
-		//receive the response
-		len = recv(nl_sock, ptr, BUF_SIZE - tot_len, 0);
-
-		if (len < 0)
-			goto err_handle;
-
-		nlmsg = (struct nlmsghdr *)ptr;
-		if (NLMSG_OK(nlmsg, len) == 0)
-			goto err_handle;
-		if (nlmsg->nlmsg_type == NLMSG_ERROR)
-			goto err_handle;
-		if (nlmsg->nlmsg_type == NLMSG_DONE)
-			break;
-
-		ptr += len; //next
-		tot_len += len;
-		
-		if ((nlmsg->nlmsg_flags & NLM_F_MULTI) == 0) //??
-			break; 		
-	} while (nlmsg->nlmsg_seq != nlseq || nlmsg->nlmsg_pid != getpid());
+	//phase2, find default gateway mac address
+	if (send_request(nl_sock, RTM_GETNEIGH, &nlseq) < 0)
+		goto err_handle;
+	if ((msg_len = recv_response(nl_sock, buf, nlseq)) < 0)
+		goto err_handle;
+	parse_response(buf, msg_len, ip, mac);
 
 	//response parsing
-	nlmsg = (struct nlmsghdr *)buf;
+	/*nlmsg = (struct nlmsghdr *)buf;
 	for (; NLMSG_OK(nlmsg, tot_len); nlmsg = NLMSG_NEXT(nlmsg, tot_len))
 	{
 		ndmsg = (struct ndmsg *)(NLMSG_DATA(nlmsg));
@@ -126,7 +159,7 @@ int get_gateway(unsigned int * ip, unsigned char * mac)
 				memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
 		}
 
-	}
+	}*/
 	
 	close(nl_sock);
 	return 0;
