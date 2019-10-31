@@ -99,8 +99,11 @@ static void sniff_start(int sock)
 		int rcvs = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 
 		if (rcvs <= 0)
-			continue;
-
+		{
+			perror("recvfrom() error");
+			break;
+			//continue;
+		}
 		buf[rcvs] = 0;
 		ptr = eth_handle(buf, parse[layer++], PARSE_SIZE);
 		while (ptr && next)

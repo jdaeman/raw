@@ -12,8 +12,12 @@
 #include <linux/if_arp.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include "util.h"
 
 #define BUF_SIZE 65536
+
+struct ether_addr;
+extern char * ether_ntoa(struct ether_addr *); //library fucntion
 
 typedef struct
 {
@@ -22,13 +26,19 @@ typedef struct
 	unsigned char mac[6];
 }host;
 
+typedef struct
+{
+	unsigned int ip;
+	unsigned char mac[6];
+}gw;
+
 typedef void (*routine)(int);
 
 void scanning(int);
 void spoofing(int);
 
 static host this;
-static unsigned int gateway;
+static gw gateway;
 
 static routine actions[3] = {scanning, spoofing, NULL};
 static int action = 0;
@@ -37,10 +47,10 @@ void param_parse(int argc, char * argv[])
 {
 	static const char * manual[] = {"hostscan", "spoof"};
 
-	if (argc <= 2)
+	if (argc <= 1)
 	{
 		int idx = 0;
-		printf("Usage: %s \"gateway ip\" parameters\n", argv[0]);
+		printf("Usage: %s parameters\n", argv[0]);
 		printf("Paramter lists\n");
 		for (; idx < sizeof(manual) / sizeof(char *); idx++)
 			printf("---%s\n", manual[idx]);
@@ -48,9 +58,8 @@ void param_parse(int argc, char * argv[])
 	}
 	else
 	{
-		int idx = 2;
+		int idx = 1;
 
-		gateway = inet_addr(argv[1]);	
 		if (!strcmp(argv[idx], "hostscan"))
 		{
 			action = 0;	
@@ -72,7 +81,13 @@ int init_base()
 	struct if_nameindex * if_arr, * itf;
 	struct ifreq ifr;
 	int sock, index, nr = 0;
-
+	
+	if (get_gateway(&gateway.ip, gateway.mac) < 0)
+		goto gateway_err;
+	
+	printf("-----default gateway-----\n---> %s [%s]\n\n", inet_ntoa(*(struct in_addr *)&gateway.ip), 
+				ether_ntoa((struct ether_addr *)(gateway.mac)));
+	
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 	if (sock < 0)
 		goto socket_err;
@@ -106,6 +121,9 @@ int init_base()
 	close(sock);
 	return index + 1;
 
+gateway_err:
+	perror("get_gateway() error");
+	exit(-1);
 socket_err:
 	perror("socket() error");
 	exit(-1);
@@ -127,7 +145,7 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsign
 	//set ethernet header
 	memcpy(eth->h_source, this.mac, 6); //MAC address length
 	if (!target)
-		memset(eth->h_dest, 0xff, 6);
+		memset(eth->h_dest, 0xff, 6); //broadcast
 	else
 		memcpy(eth->h_dest, target, 6);
 	eth->h_proto = htons(ETH_P_ARP);
@@ -136,8 +154,8 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsign
 	//set arp header
 	arp->ar_hrd = htons(1); //Ethernet
 	arp->ar_pro = htons(ETH_P_IP); //IPv4
-	arp->ar_hln = 6;
-	arp->ar_pln = 4;
+	arp->ar_hln = 6; //hw address length
+	arp->ar_pln = 4; //ip address length
 	arp->ar_op = htons(op);
 
 	ptr = (unsigned char *)(arp + 1);
@@ -147,13 +165,14 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op, unsign
 	memcpy(ptr, &this.ip, 4); //spa
 	ptr += 4;
 	if (!target) //tha
-		memset(ptr, 0, 6);
+		memset(ptr, 0, 6); //unknown
 	else
 		memcpy(ptr, target, 6);
 	ptr += 6;
 	memcpy(ptr, &dest, 4); //tpa
-}
 
+	return buf;
+}
 
 void reply_handle(int sock)
 {
@@ -168,10 +187,11 @@ void reply_handle(int sock)
 		int len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 		unsigned int host;
 
-		if (len < 0)
+		if (len <= 0)
+		{
 			perror("recvfrom() error\n");
-		if (len == 0)
-			continue;
+			break;
+		}
 
 		buf[len] = 0;
 		ptr = buf;
@@ -182,14 +202,15 @@ void reply_handle(int sock)
 			continue;
 
 		ptr += sizeof(struct arphdr);
-		ptr += 6;
+		ptr += 6; //spa
 
 		host = (*(unsigned int *)ptr);
 		host = ntohl(host & ~this.subnet);
 		if (host_list[host])
 			continue;
 
-		printf("%s is alive\n", inet_ntoa(*(struct in_addr *)ptr));
+		printf("%s[%s] is alive\n", inet_ntoa(*(struct in_addr *)ptr), 
+				ether_ntoa((struct ether_addr *)(ptr - 6)));
 		host_list[host] = 1;
 	}	
 
@@ -218,9 +239,10 @@ void scanning(int idx)
 	memset(&device, 0, sizeof(device));
 	device.sll_ifindex = idx;
 	device.sll_halen = ETH_ALEN;
-	memcpy(device.sll_addr, this.mac, 6);
+	memset(device.sll_addr, 0xff, 6);
+	//memcpy(device.sll_addr, this.mac, 6);
 
-	max = ntohl(~this.subnet);
+	max = ntohl(~this.subnet); //maximum host number
 
 	while (host <= max)
 	{
@@ -229,9 +251,9 @@ void scanning(int idx)
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 	}
 	
-	sleep(1);
+	sleep(1); //wait reply packets,
 	kill(cp, SIGKILL);
-	waitpid(cp, NULL, 0);	
+	waitpid(cp, NULL, 0);
 	close(arp_sock);
 }
 
@@ -246,7 +268,9 @@ int main(int argc, char * argv[])
 	int idx;
 
 	param_parse(argc, argv);
+
 	idx = init_base();
+
 	actions[action](idx);	
 	
 	return 0;
