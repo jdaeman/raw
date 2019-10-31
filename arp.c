@@ -26,11 +26,6 @@ typedef struct
 	unsigned char mac[6];
 }host;
 
-typedef struct
-{
-	unsigned int ip;
-	unsigned char mac[6];
-}gw;
 
 typedef void (*routine)(int);
 
@@ -38,7 +33,7 @@ void scanning(int);
 void spoofing(int);
 
 static host this;
-static gw gateway;
+static host gateway;
 
 static routine actions[3] = {scanning, spoofing, NULL};
 static int action = 0;
@@ -257,11 +252,10 @@ void scanning(int idx)
 	close(arp_sock);
 }
 
-void spoofing(int tmp)
+void spoofing(int idx)
 {
-	printf("SPOOFING\n");
+	printf("spoofing\n");
 }
-
 
 int main(int argc, char * argv[])
 {
