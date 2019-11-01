@@ -10,28 +10,27 @@
 #include <linux/wireless.h>
 #include <sys/ioctl.h>
 
-/*#include <linux/if.h>
-
-ifconfig -> flags
-
-enum net_device_flags
-
-SIOCGIFFLAGS, SIOCSIFFLAGS
--> up, down
-
-first, down the interface
-second, changed the mode managed mode(2) -> moniotor mode
-third, up the interface
-*/
-//iwreq.u.mode = IW_MODE_MONITOR;
-
 static const char * flags[] = {"UP", "BROADCAST", "DEBUG", "LOOPBACK",
 				"POINTTOPOINT", "NOTRAILERS", "RUNNING", "NOARP",
 				"PROMISC", "ALLMULTI", "MASTER", "SLAVE",
 				"MULTICAST", "PORTSEL", "AUTOMEDIA", "DYNAMIC"};
 
-static const char * modes[] = {"AUTO", "ADHOC", "INFRA", "MASTER",
+static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 				"REPEAT", "SECOND", "MONITOR", "MESH"};
+
+struct ieee80211_hdr
+{
+	unsigned short frame_control;
+	unsigned short duration_id;
+	unsigned char addr1[6];
+	unsigned char addr2[6];
+	unsigned char addr3[6];
+	unsigned short seq_ctrl;
+	unsigned char addr4[6];
+
+	//payload, max 2312 bytes
+	//CRC, 4 bytes		
+};
 
 static void print_if_state(struct ifreq * ifreq)
 {
@@ -74,14 +73,14 @@ static int wireless_mode_change(int sock, struct ifreq * ifreq, struct iwreq * i
 	if (ioctl(sock, SIOCGIFFLAGS, ifreq) < 0)
 		return -1;
 
-	if (if_switch(sock, ifreq, 0) < 0) //off
+	if (if_switch(sock, ifreq, 0) < 0) //off the interface
 		return -1;
 
 	(iwreq->u).mode = mode;
 	if (ioctl(sock, SIOCSIWMODE, iwreq) < 0)
 		return -1;
 
-	if (if_switch(sock, ifreq, 1) < 0) //on
+	if (if_switch(sock, ifreq, 1) < 0) //on the interface
 		return -1;
 
 	printf("%s, [%s] mode on\n", ifreq->ifr_name, modes[mode]);
@@ -109,7 +108,10 @@ int main(int argc, char ** argv)
 
 	//check whether the inteface is wireless.
 	if (ioctl(sock, SIOCGIWMODE, &iwreq) < 0)
-		goto ioctl_err;
+	{
+		printf("%s is not support wireless network\n", argv[1]);
+		return -1;
+	}
 
 	//monitor mode on
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
