@@ -24,6 +24,7 @@ typedef struct
 {
 	unsigned int ip;
 	unsigned int subnet;
+	unsigned int vip; //virtual ip
 	unsigned char mac[6];
 }host;
 
@@ -59,7 +60,9 @@ void param_parse(int argc, char * argv[])
 
 		if (!strcmp(argv[idx], "hostscan"))
 		{
-			action = 0;	
+			action = 0;
+			if (idx + 1 < argc)
+				this.vip = inet_addr(argv[idx + 1]);	
 		}
 		else if (!strcmp(argv[idx], "spoof"))
 		{
@@ -179,6 +182,7 @@ void * reply_handle(void * arg)
 	struct arphdr * arp;
 
 	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+	int * tot = (int *)arg;
 
 	while (1)
 	{
@@ -211,13 +215,14 @@ void * reply_handle(void * arg)
 		host_list[nr] = (host *)malloc(sizeof(host));
 		target = host_list[nr];
 
-		printf("%s[%s] is alive\n", inet_ntoa(*(struct in_addr *)ptr), 
+		printf("%s\t[%s]\tis alive\n", inet_ntoa(*(struct in_addr *)ptr), 
 				ether_ntoa((struct ether_addr *)(ptr - 6)));
 
 		memcpy(&target->ip, ptr, 4);
 		memcpy(target->mac, ptr - 6, 6);
+		*tot += 1;
 	}	
-
+	
 	close(sock);
 	return NULL;
 }
@@ -228,13 +233,14 @@ void scanning(int idx)
 	unsigned int network_addr = this.ip & this.subnet;
 	unsigned int target;
 	int arp_sock, pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
-	unsigned int max;
+	unsigned int max, used;
 	pthread_t tid;
 	unsigned char buf[BUF_SIZE];
 	struct sockaddr_ll device;
+	int tot = 0;
 
 	arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	pthread_create(&tid, NULL, reply_handle, NULL);
+	pthread_create(&tid, NULL, reply_handle, &tot);
 
 	memset(&device, 0, sizeof(device));
 	device.sll_ifindex = idx;
@@ -243,31 +249,40 @@ void scanning(int idx)
 
 	max = ntohl(~this.subnet); //maximum host number
 
+	if (this.vip == 0)
+		used = this.ip;
+	else
+		used = this.vip;
+
+	printf("the time for host scan: %f sec\n\n", max * 0.0008);
 	while (host <= max)
 	{
 		target = network_addr | htonl(host++);
-		create_arp_packet(buf, ARPOP_REQUEST, this.mac, this.ip, NULL, target);
+		create_arp_packet(buf, ARPOP_REQUEST, this.mac, used, NULL, target);
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
+		usleep(800);
 	}
 	
-	sleep(1); //wait any reply packets,
 	pthread_cancel(tid);
 	close(arp_sock);
+	printf("total: %d except you\n", tot);
 }
 
-void spoofing(int idx)
+void spoofing(int idx) //default is for all hosts
 {
 	int t;
 	unsigned char buf[BUF_SIZE];
+	unsigned int max = ntohl(!this.subnet);
 
 	scanning(idx);
 	//reply_handle() thread
-	for (t = 1; t <= 65536; t++)
+	for (t = 1; t <= max; t++)
 	{	
-		if (t == 65536)
+		if (t == max)
 		{
 			t = 0;
 			continue;
+			sleep(1); //prevention for packet overflow
 		}
 
 		if (!host_list[t])
