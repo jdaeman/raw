@@ -29,9 +29,9 @@ int main(int argc, char ** argv)
 	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	struct iwreq iwreq;
 
-	strcpy(iwreq.ifr_ifrn.ifrn_name, "wlan0");
+	strcpy(iwreq.ifr_ifrn.ifrn_name, "ens33");
 	iwreq.u.mode = IW_MODE_MONITOR;
-	if (ioctl(sock, SIOCSIWMODE, &iwreq) < 0)
+	if (ioctl(sock, SIOCGIWMODE, &iwreq) < 0)
 	{
 		perror("ioctl error");
 		return -1;

