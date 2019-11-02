@@ -10,6 +10,8 @@
 #include <linux/wireless.h>
 #include <sys/ioctl.h>
 
+#define BUF_SIZE 4096
+
 static const char * flags[] = {"UP", "BROADCAST", "DEBUG", "LOOPBACK",
 				"POINTTOPOINT", "NOTRAILERS", "RUNNING", "NOARP",
 				"PROMISC", "ALLMULTI", "MASTER", "SLAVE",
@@ -93,7 +95,8 @@ int main(int argc, char ** argv)
 {
 	struct iwreq iwreq;
 	struct ifreq ifreq;
-	int sock, off;
+	int sock, len;
+	unsigned char buf[BUF_SIZE];
 
 	if (argc == 1)
 	{
@@ -119,7 +122,19 @@ int main(int argc, char ** argv)
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
 		goto ioctl_err;
 	
-	//sniff code, ieee80211_hdr
+	while (1)
+	{
+		len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
+
+		if (len <= 0)
+		{
+			perror("recvfrom() error");
+			break;
+		}
+
+		buf[len] = 0;
+		printf("%d\n", len);
+	}
 
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
 		goto ioctl_err;
