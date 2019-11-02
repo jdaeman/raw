@@ -119,7 +119,7 @@ int main(int argc, char ** argv)
 		goto socket_err;
 
 
-	/*memset(&iwreq, 0, sizeof(iwreq));
+	memset(&iwreq, 0, sizeof(iwreq));
 	memset(&ifreq, 0, sizeof(ifreq));
 
 	strcpy(org_if, argv[1]);
@@ -144,7 +144,7 @@ int main(int argc, char ** argv)
 
 	//monitor mode on
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
-		goto ioctl_err;*/
+		goto ioctl_err;
 
 	while (!is_end)
 	{
@@ -160,8 +160,8 @@ int main(int argc, char ** argv)
 		printf("%d\n", len);
 	}
 
-	/*if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
-		goto ioctl_err;*/
+	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
+		goto ioctl_err;
 	
 	return 0;
 
