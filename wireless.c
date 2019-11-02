@@ -20,6 +20,8 @@ static const char * flags[] = {"UP", "BROADCAST", "DEBUG", "LOOPBACK",
 static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 				"REPEAT", "SECOND", "MONITOR", "MESH"};
 
+static int is_end = 0;
+
 struct ieee80211_hdr
 {
 	unsigned short frame_control;
@@ -91,6 +93,11 @@ static int wireless_mode_change(int sock, struct ifreq * ifreq, struct iwreq * i
 	return 0;
 }
 
+static void sigint_handle(int sig)
+{
+	is_end = 1;
+}
+
 int main(int argc, char ** argv)
 {
 	struct iwreq iwreq;
@@ -122,7 +129,7 @@ int main(int argc, char ** argv)
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
 		goto ioctl_err;
 	
-	while (1)
+	while (!is_end)
 	{
 		len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
 
