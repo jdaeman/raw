@@ -9,6 +9,7 @@
 #include <net/if.h>
 #include <linux/wireless.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 
 #define BUF_SIZE 4096
 
@@ -21,6 +22,8 @@ static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 				"REPEAT", "SECOND", "MONITOR", "MESH"};
 
 static int is_end = 0;
+static unsigned char org_if[32];
+static unsigned char ch_if[32];
 
 struct ieee80211_hdr
 {
@@ -57,7 +60,7 @@ static void print_if_state(struct ifreq * ifreq)
 static int if_switch(int sock, struct ifreq * ifreq, int on)
 {
 	unsigned short flag = (IFF_UP | IFF_RUNNING); 
-	
+
 	if (!ifreq)
 		return -1;
 	
@@ -114,9 +117,23 @@ int main(int argc, char ** argv)
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sock < 0)
 		goto socket_err;
-	
+
+
+	/*memset(&iwreq, 0, sizeof(iwreq));
+	memset(&ifreq, 0, sizeof(ifreq));
+
+	strcpy(org_if, argv[1]);
+	strcpy(ch_if, "monitor");	
 	strcpy(iwreq.ifr_ifrn.ifrn_name, argv[1]);
 	strcpy(ifreq.ifr_name, argv[1]);
+
+	signal(SIGINT, sigint_handle);	
+
+	if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, &ifreq, sizeof(ifreq)) < 0)
+	{
+		perror("setsockopt error");
+		return -1;
+	}
 
 	//check whether the inteface is wireless.
 	if (ioctl(sock, SIOCGIWMODE, &iwreq) < 0)
@@ -127,8 +144,8 @@ int main(int argc, char ** argv)
 
 	//monitor mode on
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
-		goto ioctl_err;
-	
+		goto ioctl_err;*/
+
 	while (!is_end)
 	{
 		len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
@@ -143,8 +160,8 @@ int main(int argc, char ** argv)
 		printf("%d\n", len);
 	}
 
-	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
-		goto ioctl_err;
+	/*if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
+		goto ioctl_err;*/
 	
 	return 0;
 
