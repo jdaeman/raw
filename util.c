@@ -1,7 +1,12 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <sys/socket.h>
@@ -195,6 +200,51 @@ unsigned short cksum(unsigned short * buf, int len)
 	sum = (sum >> 16) + (sum & 0xffff);
 	sum += (sum >> 16);
 	return (unsigned short)(~sum);
+}
+
+int find_pids(const char ** list, pid_t * plist, int len)
+{
+	DIR * dir;
+	struct dirent * ent;
+	char * endptr;
+	char buf[512];
+	int fd, cnt, idx = 0;
+
+	if (!(dir = opendir("/proc")))
+		return -1;
+
+	while ((ent = readdir(dir)) != NULL)
+	{
+		long pid = strtol(ent->d_name, &endptr, 10);
+		if (*endptr != 0) //not numeric
+			continue; 
+
+		sprintf(buf, "/proc/%ld/comm", pid);
+		fd = open(buf, O_RDONLY);
+		if ((cnt =read(fd, buf, 512)) < 0)
+		{
+			closedir(dir);
+			return -1;
+		}
+		buf[cnt - 1] = 0;
+
+		for (cnt = 0; cnt < len; cnt++)
+		{
+			if (!strcmp(buf, list[cnt]))
+			{
+				plist[idx++] = pid;
+				break;
+			}
+		}
+		close(fd);
+		if (idx == len)
+			break;		
+	}
+
+	closedir(dir);
+	if (idx < len)
+		return -1;	
+	return 0;
 }
 
 /*int create_icmp_packet(char * buf, int len,

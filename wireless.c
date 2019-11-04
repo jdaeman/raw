@@ -10,6 +10,7 @@
 #include <linux/wireless.h>
 #include <sys/ioctl.h>
 #include <signal.h>
+#include "util.h"
 
 #define BUF_SIZE 4096
 
@@ -20,6 +21,8 @@ static const char * flags[] = {"UP", "BROADCAST", "DEBUG", "LOOPBACK",
 
 static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 				"REPEAT", "SECOND", "MONITOR", "MESH"};
+
+static const char * proc_list[] = {"NetworkManager", "wpa_supplicant"};
 
 static int is_end = 0;
 static unsigned char org_if[32];
@@ -40,6 +43,11 @@ struct ieee80211_hdr
 	//payload, max 2312 bytes
 	//CRC, 4 bytes		
 };
+
+static void ieee80211_hdr_parse(char * pkt, int len)
+{
+	struct ieee80211_hdr * h = (struct ieee80211_hdr *)pkt;
+}
 
 static void print_if_state(struct ifreq * ifreq)
 {
@@ -101,11 +109,22 @@ static void sigint_handle(int sig)
 	is_end = 1;
 }
 
+static int send_sig(int * pids, int len, int sig)
+{
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		if (kill(pids[i], sig) < 0)
+			return -1;
+	}
+	return 0;
+}
 int main(int argc, char ** argv)
 {
 	struct iwreq iwreq;
 	struct ifreq ifreq;
 	int sock, len;
+	int pids[10];
 	unsigned char buf[BUF_SIZE];
 
 	if (argc == 1)
@@ -118,22 +137,13 @@ int main(int argc, char ** argv)
 	if (sock < 0)
 		goto socket_err;
 
-
 	memset(&iwreq, 0, sizeof(iwreq));
 	memset(&ifreq, 0, sizeof(ifreq));
 
-	strcpy(org_if, argv[1]);
-	strcpy(ch_if, "monitor");	
 	strcpy(iwreq.ifr_ifrn.ifrn_name, argv[1]);
 	strcpy(ifreq.ifr_name, argv[1]);
 
 	signal(SIGINT, sigint_handle);	
-
-	if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, &ifreq, sizeof(ifreq)) < 0)
-	{
-		perror("setsockopt error");
-		return -1;
-	}
 
 	//check whether the inteface is wireless.
 	if (ioctl(sock, SIOCGIWMODE, &iwreq) < 0)
@@ -141,6 +151,34 @@ int main(int argc, char ** argv)
 		printf("%s is not support wireless network\n", argv[1]);
 		return -1;
 	}
+	if (iwreq.u.mode != IW_MODE_MONITOR)
+	{
+		printf("turn on monitor mode\n");
+		printf(">>> sudo airmon_ng start %s\n", argv[1]);
+		return -1;
+	}
+
+	printf("start wireless packet capture\n");
+
+	while (!is_end)
+	{
+		len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
+		if (len <= 0)
+		{
+			perror("recvfrom() error");
+			break;
+		}
+		buf[len] = 0;
+		ieee80211_hdr_parse(buf, len);
+	}
+
+	/*len = sizeof(proc_list) / sizeof(char *);
+	if (find_pids(proc_list, pids, len) < 0)
+	{
+		printf("find_pids error\n");
+		return -1;
+	}
+	
 
 	//monitor mode on
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
@@ -161,8 +199,9 @@ int main(int argc, char ** argv)
 	}
 
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
-		goto ioctl_err;
-	
+		goto ioctl_err;*/
+
+	close(sock);
 	return 0;
 
 socket_err:

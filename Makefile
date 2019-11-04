@@ -5,7 +5,7 @@ EXE := sniff
 ARP_SRC := arp.c util.c
 ARP_EXE := arp
 
-WLESS_SRC := wireless.c
+WLESS_SRC := wireless.c util.c
 WLESS_EXE := wireless
 
 sniff : $(SRC)
