@@ -169,7 +169,8 @@ int main(int argc, char ** argv)
 			break;
 		}
 		buf[len] = 0;
-		ieee80211_hdr_parse(buf, len);
+		//ieee80211_hdr_parse(buf, len);
+		printf("%d\n", len);
 	}
 
 	/*len = sizeof(proc_list) / sizeof(char *);
