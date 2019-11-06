@@ -29,6 +29,7 @@ create table actor (
 create table awards (
   year year not null,
   award varchar(128) not null,
+  
   foreign key (a_id) references actor(a_id)
   );
 create table takes (
