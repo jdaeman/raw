@@ -4,9 +4,9 @@ use project;
 create table person (
   p_id int not null auto_increment,
   name varchar(128) not null,
-  birth datetime not null,
+  birth date not null,
   gender varchar(8) not null,
-  debut_year datetime not null,
+  debut_year year not null,
   primary key (p_id),
   foreign_key (m_id) references movie
   );
@@ -20,17 +20,17 @@ create table movie (
   m_id int not null auto_increment,
   title varchar(128) not null,
   genre varchar(64) not null,
-  release datetime not null,
+  release date not null,
   run_time int not null,
   country varchar(64) not null,
   admission int not null,
   attendance int nou null,
-  grade int not null,
+  grade float not null,
   primary key (m_id),
   foreign key (d_id) references director
   );
 create table awards (
-  year datetime not null
+  year year not null
   award varchar(128) not null
   foreign key (p_id) references person
   );
