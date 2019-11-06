@@ -1,5 +1,5 @@
 CREATE SCHEMA 'project';
-
+/////////////////////////////////
 use project;
 create table person (
   p_id int not null auto_increment,
@@ -34,5 +34,9 @@ create table awards (
   award varchar(128) not null
   foreign key (p_id) references person
   );
-  
-sdsd
+create table takes (
+  foreign key (m_id) references movie,
+  foreign key (p_id) references actor
+  );
+///////
+
