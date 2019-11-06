@@ -13,6 +13,7 @@ create table movie (
   admission int not null,
   attendance int not null,
   grade float not null,
+  //pic blob,
   
   primary key (id)
   );
@@ -22,6 +23,7 @@ create table actor (
   birth date not null,
   gender varchar(8) not null,
   debut_year year not null,
+  //pic blob,
   
   primary key (a_id),
   foreign key (m_id) references movie(m_id)
