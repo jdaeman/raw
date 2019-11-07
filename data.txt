@@ -1,0 +1,109 @@
+//영화 정보
+Batman begins, Action, 2005.06.24, 139min, US, 12, Christopher Nolan, 869244, 8.93
+The dark knight, Action, 2008.08.06, 152min, US, 15, Christopher Nolan, 4175526, 10.00
+The dark knight rises, Action, 2012.07.19, 164min, US, 15, Christopher Nolan, 6399304, 9.02
+The man from nowhere, Action, 2010.08.04, 119min, korea, 19, Lee Jeong Beom, 6178665, 9.23
+Confidential Assignment, Action, 2017.01.18, 125min, korea, 15, Kim Sung Hoon, 7817654, 8.83
+Exit, comedy, 2019.07.31, 103m, Korea, 12, Lee Sang Keun, 9418930, 9.01
+Iron man, SF, 2008.04.30, 125m, US, 12, Jon Favreau, 4300365, 8.91
+Iron man2, SF, 2010.04.29, 125m, US, 12, Jon Favreau, 4425235, 7.36
+Iron man3, SF, 2013.04.25, 129m, US, 12, Shane Black, 9001679, 8.86
+The Avengers, SF, 2012.04.26, 142m, US, 12, Joss Whedon, 7075607, 8.80
+The Avengers: Age of Ultron, action, 2015.04.23. 141, US, 12, Joss Whedon, 10494840, 8.59
+Avengers: Infinity War, Action, 2018.04.25, 149m, US, 12, Russo Brothers, 11212710, 9.08
+Avengers: Endgame, SF, 2019.04.24, 181m, US, 12, Russo Brothers, 13934604, 9.50
+
+//배우 정보
+Christian Bale, 1974.01.30, male,        브루스 웨인
+Michael Caine, 1933.03.14, male,        알프레드
+Liam Nesson, 1952.06.07, male,          라스알굴
+Katie Holmes, 1978.12.18, female,        레이첼 도스
+Gary Oldman, 1958.03.21, male,          짐 고든
+
+Heath Ledger, 1979.04.04, male,           조커
+Aaron Eckhart, 1968.03.12, male,           하비 덴트
+Maggie Gyllenhaal, 1997.11.16, female,    레이첼 도스
+
+Anne Hathaway, 1982.11.12, female,        셀리나 카일
+Tom Hardy, 1977.09.15, male,                베인
+
+원빈, 1977.11.10, male, 차태식
+김새론, 2000.07.31, female, 소미
+김태훈, 1975.05.26, male, 김치곤
+김희원, 1971.01.10, male, 만석
+김성오, 1978.09.15, male, 종석
+
+조정석, 1980.12.26, male, 용남
+윤아, 1990.05.30, female, 의주
+고두심, 1951.05.22, female, 현옥
+박인환, 1945.01.16, male, 장수
+김지영, 1974.09.07, female, 정현
+
+Robert Downey Jr, 1965.04.04, male,                  토니 스타크
+Terrence Howard, 1969.03.11, male,                   제임스 로드
+Jeff Bridges, 1949.12.04, male,                           오베디아
+Gwyneth Paltrow, 1972.09.27, female,                  페퍼 포츠
+
+Don Cheadle, 1964.11.29, male,                       제임스 로드
+Scarlett Johansson, 1984.11.22, female,             블랙 위도우,
+Mickey Rourke, 1952.09.16, male,                    이안 반코
+
+Ben kingsley, 1943.12.31, male,                       만다린
+Guy Pearce, 1967.10.05, male,                        킬리언
+
+Chirs Hemsworth, 1983.08.11, male                 토르
+Chris Evans, 1981.06.13, male                        스티브 로저스
+Mark Ruffalo, 1967.11.22, male,                     브루스 배너
+
+//어벤저스2는 어벤저스1과 동일
+
+Josh Brolin, 1968.02.12, male,                     타노스
+Benedict Cumberbatch, 1976.07.19, male      닥터 스트레인지
+
+//어벤저스4는 어벤저스3과 동일
+
+//수상 정보
+Christian Bale, 2019, Golden Glove
+                   2016, Satellite Awards
+
+Michael Caine, 2015, 유럽영화상
+                   2011, 유럽영화상
+
+Liam Nesson, 2005, 아일랜드 필름 앤 텔레비전 어워드
+
+Katie Holmes, 1999, MTV영화제
+
+Gary Oldman, 2018, 아카데미 시상식
+
+Heath Ledger, 2009, 아카데미 시상식
+                   2009, Golden Glove
+
+Aaron Eckhart, 1998, Satellite Awards
+
+Maggie Gyllenhaal, 2015, Golden Glove
+
+Anne Hathaway, 2013, 아카데미 시상식
+
+Tom Hardy, 2016, 크리틱스 초이스 시상식
+
+김새론, 2016, 코리아 드라마 어워즈
+
+조정석, 2016, SAF 연기대상
+
+윤아, 2019, 아시아 스타 어워즈
+
+고두심, 2015, KBS 연기대상
+
+박인환, 2000, SBS 연기대상
+
+김지영, 2016, SAF 연기대상
+
+Robert Downey Jr, 2015, MTV영화제
+
+Terrence Howard, 2005, Satellite Awards
+
+Jeff Bridges, 2019, Gloden Glove
+
+Gwyneth Paltrow, 2011, 밤비 미디어 어워즈
+
+//돈 치들 부터
