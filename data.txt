@@ -48,13 +48,13 @@ insert into movie values (null, 'Batman begins', 'Action', '2005-06-24', 139, 'U
 insert into movie values (null, 'The dark knight', 'Action', '2008-08-06', 152, 'US', 15, 'Christopher Nolan', 4175526, 10.00);
 insert into movie values (null, 'The dark knight rises', 'Action', '2012-07-19', 164, 'US', 15, 'Christopher Nolan', 6399304, 9.02);
 insert into movie values (null, '아저씨', 'Action', '2010-08-04', 119, 'korea', 19, '이정범', 6178665, 9.23);
-insert into movie values (null, '공조', 'Action', '2017-01-18', 125, 'korea', 15, '김상훈,' 7817654, 8.83);
+insert into movie values (null, '공조', 'Action', '2017-01-18', 125, 'korea', 15, '김상훈', 7817654, 8.83);
 insert into movie values (null, '엑시트', 'comedy', '2019-07-31', 103, 'Korea', 12, '이상근', 9418930, 9.01);
 insert into movie values (null, 'Iron man', 'SF', '2008-04-30', 125, 'US', 12, 'Jon Favreau', 4300365, 8.91);
-insert into movie values (null, 'Iron man2', 'SF', '2010-04-29, 125, 'US', 12, 'Jon Favreau', 4425235, 7.36);
+insert into movie values (null, 'Iron man2', 'SF', '2010-04-29', 125, 'US', 12, 'Jon Favreau', 4425235, 7.36);
 insert into movie values (null, 'Iron man3', 'SF', '2013-04-25', 129, 'US', 12, 'Shane Black', 9001679, 8.86);
-insert into movie values (null, 'The Avengers', 'SF', '2012-04-26', '142', 'US', 12, 'Joss Whedon', 7075607, 8.80);
-insert into movie values (null, 'The Avengers: Age of Ultron', 'Action', '2015-04-23'. 141, 'US', 12, 'Joss Whedon', 10494840, 8.59);
+insert into movie values (null, 'The Avengers', 'SF', '2012-04-26', 142, 'US', 12, 'Joss Whedon', 7075607, 8.80);
+insert into movie values (null, 'The Avengers: Age of Ultron', 'Action', '2015-04-23', 141, 'US', 12, 'Joss Whedon', 10494840, 8.59);
 insert into movie values (null, 'Avengers: Infinity War', 'Action', '2018-04-25', 149, 'US', 12, 'Russo Brothers', 11212710, 9.08);
 insert into movie values (null, 'Avengers: Endgame', 'SF', '2019-04-24', 181, 'US', 12, 'Russo Brothers', 13934604, 9.50);
 
