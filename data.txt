@@ -106,7 +106,7 @@ insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	#
 #어벤저스4
 
 #공조
-insert into actor values (null, '현빈', '1982-09-25', 'male);	#철령
+insert into actor values (null, '현빈', '1982-09-25', 'male');	#철령
 insert into actor values (null, '유해진', '1970-01-04', 'male');	#강진태
 insert into actor values (null, '김주혁', '1970-10-03', 'male');	#차기성
 
@@ -128,7 +128,7 @@ insert into cast values (3, 1, '브루스 웨인');
 insert into cast values (3, 2, '알프레드');
 insert into cast values (3, 5, '짐 고든');
 insert into cast values (3, 9, '셀리나 카일');
-insert into cast values (3. 10, '베인');
+insert into cast values (3, 10, '베인');
 
 insert into cast values (4, 11, '차태식');
 insert into cast values (4, 12, '소미');
@@ -136,9 +136,9 @@ insert into cast values (4, 13, '김치곤');
 insert into cast values (4, 14, '만석');
 insert into cast values (4, 15, '종석');
 
-#insert into cast values (5, xx, '철령');
-#insert into cast values (5, xx, '강진태');
-#insert into cast values (5, xx, '차기성');
+insert into cast values (5, 35, '철령');
+insert into cast values (5, 36, '강진태');
+insert into cast values (5, 37, '차기성');
 
 insert into cast values (6, 16, '용남');
 insert into cast values (6, 17, '의주');
@@ -182,6 +182,14 @@ insert into cast values (12, 31, '스티브 로저스');
 insert into cast values (12, 32, '브루스 배너');
 insert into cast values (12, 33, '타노스');
 insert into cast values (12, 34, '닥터 스트레인지');
+
+insert into cast values (13, 21, '토니 스타크');
+insert into cast values (13, 26, '블랙위도우');
+insert into cast values (13, 30, '토르');
+insert into cast values (13, 31, '스티브 로저스');
+insert into cast values (13, 32, '브루스 배너');
+insert into cast values (13, 33, '타노스');
+insert into cast values (13, 34, '닥터 스트레인지');
 
 //수상 정보(awards)
 insert into awards values (1, '2019', '골든 글로브 시상식 남우주연상');
