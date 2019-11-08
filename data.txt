@@ -66,7 +66,7 @@ insert into actor values (null, 'Katie Holmes', '1978-12-18', 'female');	-- 레�
 insert into actor values (null, 'Gary Oldman', '1958-03-21', 'male');	-- 짐 고든
 insert into actor values (null, 'Heath Ledger', '1979-04-04', 'male');	-- 조커
 insert into actor values (null, 'Aaron Eckhart', '1968-03-12', 'male');	-- 하비 덴트
-insert into actor values (null, 'Maggie Gyllenhaal', '1997-11-16', 'female')	-- 레이첼 도스
+insert into actor values (null, 'Maggie Gyllenhaal', '1997-11-16', 'female');	-- 레이첼 도스
 insert into actor values (null, 'Anne Hathaway', '1982-11-12', 'female');	-- 셀리나 카일
 insert into actor values (null, 'Tom Hardy', '1977-09-15', 'male');	-- 베인
 
