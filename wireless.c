@@ -24,6 +24,10 @@ static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 
 static const char * proc_list[] = {"NetworkManager", "wpa_supplicant"};
 
+static const char * caution = "Stop [NetworkManager], [wpa_supplicant] by using below command\n"
+				"\t#service NetworkManager/wpa_supplicant stop\n";
+
+
 static int is_end = 0;
 static unsigned char org_if[32];
 static unsigned char ch_if[32];
@@ -132,7 +136,7 @@ int main(int argc, char ** argv)
 		printf("there is no interface name\n");
 		return -1;
 	}
-
+	
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sock < 0)
 		goto socket_err;
@@ -151,35 +155,8 @@ int main(int argc, char ** argv)
 		printf("%s is not support wireless network\n", argv[1]);
 		return -1;
 	}
-	if (iwreq.u.mode != IW_MODE_MONITOR)
-	{
-		printf("turn on monitor mode\n");
-		printf(">>> sudo airmon_ng start %s\n", argv[1]);
-		return -1;
-	}
-
-	printf("start wireless packet capture\n");
-
-	while (!is_end)
-	{
-		len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
-		if (len <= 0)
-		{
-			perror("recvfrom() error");
-			break;
-		}
-		buf[len] = 0;
-		//ieee80211_hdr_parse(buf, len);
-		printf("%d\n", len);
-	}
-
-	/*len = sizeof(proc_list) / sizeof(char *);
-	if (find_pids(proc_list, pids, len) < 0)
-	{
-		printf("find_pids error\n");
-		return -1;
-	}
-	
+	else
+		printf("%s\n", caution);
 
 	//monitor mode on
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
@@ -200,7 +177,7 @@ int main(int argc, char ** argv)
 	}
 
 	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
-		goto ioctl_err;*/
+		goto ioctl_err;
 
 	close(sock);
 	return 0;
