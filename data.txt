@@ -103,47 +103,126 @@ insert into actor values (null, 'Mark Ruffalo', '1967-11-22', 'male');	#브루�
 insert into actor values (null, 'Josh Brolin', '1968-02-12', 'male');	#타노스
 insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	#닥터 스트레인지
 
+#어벤저스4
+
+#공조
+insert into actor values (null, '현빈', '1982-09-25', 'male);	#철령
+insert into actor values (null, '유해진', '1970-01-04', 'male');	#강진태
+insert into actor values (null, '김주혁', '1970-10-03', 'male');	#차기성
 
 //출연 정보(cast) - (m_id, a_id, );
 insert into cast values (1, 1, '브루스 웨인');
+insert into cast values (1, 2, '알프레드');
+insert into cast values (1, 3, '라스알굴');
+insert into cast values (1, 4, '레이첼 도스');
+insert into cast values (1, 5, '짐 고든');
+
+insert into cast values (2, 1, '브루스 웨인');
+insert into cast values (2, 2, '알프레드');
+insert into cast values (2, 5, '짐 고든');
+insert into cast values (2, 8, '레이첼 도스');
+insert into cast values (2, 6, '조커');
+insert into cast values (2, 7, '하비 덴트');
+ 
+insert into cast values (3, 1, '브루스 웨인');
+insert into cast values (3, 2, '알프레드');
+insert into cast values (3, 5, '짐 고든');
+insert into cast values (3, 9, '셀리나 카일');
+insert into cast values (3. 10, '베인');
+
+insert into cast values (4, 11, '차태식');
+insert into cast values (4, 12, '소미');
+insert into cast values (4, 13, '김치곤');
+insert into cast values (4, 14, '만석');
+insert into cast values (4, 15, '종석');
+
+#insert into cast values (5, xx, '철령');
+#insert into cast values (5, xx, '강진태');
+#insert into cast values (5, xx, '차기성');
+
+insert into cast values (6, 16, '용남');
+insert into cast values (6, 17, '의주');
+insert into cast values (6, 18, '현옥');
+insert into cast values (6, 19, '장수');
+insert into cast values (6, 20, '정현');
+
+insert into cast values (7, 21, '토니 스타크');
+insert into cast values (7, 22, '제임스 로드');
+insert into cast values (7, 23, '오베디아');
+insert into cast values (7, 24, '페퍼 포츠');
+
+insert into cast values (8, 21, '토니 스타크');
+insert into cast values (8, 24, '페퍼 포츠');
+insert into cast values (8, 25, '제임스 로드');
+insert into cast values (8, 26, '블랙위도우');
+insert into cast values (8, 27, '이안 반코');
+
+insert into cast values (9, 21, '토니 스타크');
+insert into cast values (9, 24, '페퍼 포츠');
+insert into cast values (9, 25, '제임스 로드');
+insert into cast values (9, 28, '만다린');
+insert into cast values (9, 29, '킬리언');
+
+insert into cast values (10, 21, '토니 스타크');
+insert into cast values (10, 26, '블랙위도우');
+insert into cast values (10, 30, '토르');
+insert into cast values (10, 31, '스티브 로저스');
+insert into cast values (10, 32, '브루스 배너');
+
+insert into cast values (11, 21, '토니 스타크');
+insert into cast values (11, 26, '블랙위도우');
+insert into cast values (11, 30, '토르');
+insert into cast values (11, 31, '스티브 로저스');
+insert into cast values (11, 32, '브루스 배너');
+
+insert into cast values (12, 21, '토니 스타크');
+insert into cast values (12, 26, '블랙위도우');
+insert into cast values (12, 30, '토르');
+insert into cast values (12, 31, '스티브 로저스');
+insert into cast values (12, 32, '브루스 배너');
+insert into cast values (12, 33, '타노스');
+insert into cast values (12, 34, '닥터 스트레인지');
 
 //수상 정보(awards)
-insert into awards values (a_id, year, awards);
+insert into awards values (1, '2019', '골든 글로브 시상식 남우주연상');
+insert into awards values (1, '2016', '새틀라이트 어워즈 남우조연상');
 
-Christian Bale, '2019', 'Golden Glove'
-                   2016, Satellite Awards
+insert into awards values (2, '2015', '유럽영화상 명예상');
+insert into awards values (2, '2011', '프랑스 문화예술 공로훈장 기사장');
 
-Michael Caine, 2015, 유럽영화상
-                   2011, 유럽영화상
+insert into awards values (3, '2005', '팜스프링스 국제영화제 공로상');
+insert into awards values (3, '2005', '아일랜드 필름 앤 텔레비전 어워즈 남우주연상');
 
-Liam Nesson, 2005, 아일랜드 필름 앤 텔레비전 어워드
+insert into awards values (4, '1999', 'MTV영화제 여우신인상');
 
-Katie Holmes, 1999, MTV영화제
+insert into awards values (5, '2018', '아카데미 시상식 남우주연상');
 
-Gary Oldman, 2018, 아카데미 시상식
+insert into awards values (6, '2009', '아카데미 시상식 남우주연상');
+insert into awards values (6, '2009', '골든글로브 시상식 남우조연상');
 
-Heath Ledger, 2009, 아카데미 시상식
-                   2009, Golden Glove
+insert into awards values (7, '1998', '새틀라이트 어워즈 특별공헌상');
 
-Aaron Eckhart, 1998, Satellite Awards
+insert into awards values (8, '2015', '골든글로브 시상식 여우주연상');
 
-Maggie Gyllenhaal, 2015, Golden Glove
+insert into awards values (9, '2009', '아카데미 시상식 여우조연상');
 
-Anne Hathaway, 2013, 아카데미 시상식
+insert into awards values (10, '2016', '런던 비평가 협회상 영국남우주연상');
 
-Tom Hardy, 2016, 크리틱스 초이스 시상식
+insert into awards values (11, '2011', '대종상영화제 인기상');
 
-김새론, 2016, 코리아 드라마 어워즈
+insert into awards values (12, '2016', '코리아 드라마 어워즈 여자신인상');
 
-조정석, 2016, SAF 연기대상
+insert into awards values (16, '2016', 'SAF 연기대상 10대스타상');
 
-윤아, 2019, 아시아 스타 어워즈
+insert into awards values (17, '2019', '부일영화상 여자 인기스타상');
 
-고두심, 2015, KBS 연기대상
+insert into awards values (18, '2015', 'KBS 연기대상 대상');
 
-박인환, 2000, SBS 연기대상
+insert into awards values (19, '2000', 'SBS 연기대상 최우수연기상');
 
-김지영, 2016, SAF 연기대상
+insert into awards values (20, '2016', 'SAF 연기대상 여자 우수연기상');
+
+###########################
 
 Robert Downey Jr, 2015, MTV영화제
 
