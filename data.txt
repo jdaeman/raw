@@ -59,51 +59,50 @@ insert into movie values (null, 'Avengers: Infinity War', 'Action', '2018-04-25'
 insert into movie values (null, 'Avengers: Endgame', 'SF', '2019-04-24', 181, 'US', 12, 'Russo Brothers', 13934604, 9.50);
 
 //배우 정보(actor)
-insert into actor values (null, 'Christian Bale', '1974-01-30', 'male');	--브루스 웨인
-insert into actor values (null, 'Michael Caine', '1933-03-14', 'male');	--알프레드
-insert into actor values (null, 'Liam Nesson', '1952-06-07', 'male');	-- 라스알굴
-insert into actor values (null, 'Katie Holmes', '1978-12-18', 'female');	-- 레이첼 도스
-insert into actor values (null, 'Gary Oldman', '1958-03-21', 'male');	-- 짐 고든
-insert into actor values (null, 'Heath Ledger', '1979-04-04', 'male');	-- 조커
-insert into actor values (null, 'Aaron Eckhart', '1968-03-12', 'male');	-- 하비 덴트
-insert into actor values (null, 'Maggie Gyllenhaal', '1997-11-16', 'female');	-- 레이첼 도스
-insert into actor values (null, 'Anne Hathaway', '1982-11-12', 'female');	-- 셀리나 카일
-insert into actor values (null, 'Tom Hardy', '1977-09-15', 'male');	-- 베인
+insert into actor values (null, 'Christian Bale', '1974-01-30', 'male');	#브루스 웨인
+insert into actor values (null, 'Michael Caine', '1933-03-14', 'male');	#알프레드
+insert into actor values (null, 'Liam Nesson', '1952-06-07', 'male');	#라스알굴
+insert into actor values (null, 'Katie Holmes', '1978-12-18', 'female');	#레이첼 도스
+insert into actor values (null, 'Gary Oldman', '1958-03-21', 'male');	#짐 고든
+insert into actor values (null, 'Heath Ledger', '1979-04-04', 'male');	#조커
+insert into actor values (null, 'Aaron Eckhart', '1968-03-12', 'male');	#하비 덴트
+insert into actor values (null, 'Maggie Gyllenhaal', '1997-11-16', 'female');	#레이첼 도스
+insert into actor values (null, 'Anne Hathaway', '1982-11-12', 'female');	#셀리나 카일
+insert into actor values (null, 'Tom Hardy', '1977-09-15', 'male');	#베인
 
-insert into actor values (null, '원빈', '1977-11-10', 'male');  	-- 차태식
-insert into actor values (null, '김새론', '2000-07-31', 'female');  --소미
-insert into actor values (null, '김태훈', '1975-05-26', 'male');	--  김치곤
-insert into actor values (null, '김희원', '1971-01-10', 'male'); 	--만석
-insert into actor values (null, '김성오', '1978-09-15', 'male');    --종석
+insert into actor values (null, '원빈', '1977-11-10', 'male');  	#차태식
+insert into actor values (null, '김새론', '2000-07-31', 'female');  #소미
+insert into actor values (null, '김태훈', '1975-05-26', 'male');	#김치곤
+insert into actor values (null, '김희원', '1971-01-10', 'male'); 	#만석
+insert into actor values (null, '김성오', '1978-09-15', 'male');    #종석
 
-insert into actor values (null, '조정석', '1980-12-26', 'male');	--용남
-insert into actor values (null, '임윤아', '1990-05-30', 'female');	--의주
-insert into actor values (null, '고두심', '1951-05-22', 'female');	--현옥
-insert into actor values (null, '박인환', '1945-01-16', 'male');	--장수
-insert into actor values (null, '김지영', '1974-09-07', 'female');	--정현
+insert into actor values (null, '조정석', '1980-12-26', 'male');	#용남
+insert into actor values (null, '임윤아', '1990-05-30', 'female');	#의주
+insert into actor values (null, '고두심', '1951-05-22', 'female');	#현옥
+insert into actor values (null, '박인환', '1945-01-16', 'male');	#장수
+insert into actor values (null, '김지영', '1974-09-07', 'female');	#정현
 
-insert into actor values (null, 'Robert Downey Jr', '1965-04-04', 'male');	--토니 스타크
-insert into actor values (null, 'Terrence Howard', '1969-03-11', 'male');	--제임스 로드
-insert into actor values (null, 'Jeff Bridges', '1949-12-04', 'male');	--오베디아
-insert into actor values (null, 'Gwyneth Paltrow', '1972-09-27', 'female');	--페퍼 포츠
+insert into actor values (null, 'Robert Downey Jr', '1965-04-04', 'male');	#토니 스타크
+insert into actor values (null, 'Terrence Howard', '1969-03-11', 'male');	#제임스 로드
+insert into actor values (null, 'Jeff Bridges', '1949-12-04', 'male');	#오베디아
+insert into actor values (null, 'Gwyneth Paltrow', '1972-09-27', 'female');	#페퍼 포츠
 
-insert into actor values (null, 'Don Cheadle', '1964-11-29', 'male');	--제임스 로드
-insert into actor values (null, 'Scarlett Johansson', '1984-11-22', 'female');	--블랙 위도우,
-insert into actor values (null, 'Mickey Rourke', '1952-09-16', 'male');	--이안 반코
+insert into actor values (null, 'Don Cheadle', '1964-11-29', 'male');	#제임스 로드
+insert into actor values (null, 'Scarlett Johansson', '1984-11-22', 'female');	#블랙 위도우,
+insert into actor values (null, 'Mickey Rourke', '1952-09-16', 'male');	#이안 반코
 
-insert into actor values (null, 'Ben kingsley', '1943-12-31', 'male');	--만다린
-insert into actor values (null, 'Guy Pearce', '1967-10-05', 'male');	--킬리언
+insert into actor values (null, 'Ben kingsley', '1943-12-31', 'male');	#만다린
+insert into actor values (null, 'Guy Pearce', '1967-10-05', 'male');	#킬리언
 
-insert into actor values (null, 'Chirs Hemsworth', '1983-08-11', 'male');	--토르
-insert into actor values (null, 'Chris Evans', '1981-06-13', 'male');	--스티브 로저스
-insert into actor values (null, 'Mark Ruffalo', '1967-11-22', 'male');	--브루스 배너
+insert into actor values (null, 'Chirs Hemsworth', '1983-08-11', 'male');	#토르
+insert into actor values (null, 'Chris Evans', '1981-06-13', 'male');	#스티브 로저스
+insert into actor values (null, 'Mark Ruffalo', '1967-11-22', 'male');	#브루스 배너
 
-//어벤저스2는 어벤저스1과 동일
+#어벤저스2는 어벤저스1과 동일
 
-insert into actor values (null, 'Josh Brolin', '1968-02-12', 'male');	--타노스
-insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	--닥터 스트레인지
+insert into actor values (null, 'Josh Brolin', '1968-02-12', 'male');	#타노스
+insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	#닥터 스트레인지
 
-//어벤저스4는 어벤저스3과 동일
 
 //출연 정보(cast)
 insert into cast values (
