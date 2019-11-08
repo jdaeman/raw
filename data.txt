@@ -1,4 +1,5 @@
 //영화 정보
+insert into movie values (null, 'Batman begins', 'Action', '2005-06-24', 139, 'US', 12, 'Christopher Nolan', 869244, 8.93)
 Batman begins, Action, 2005.06.24, 139min, US, 12, Christopher Nolan, 869244, 8.93
 The dark knight, Action, 2008.08.06, 152min, US, 15, Christopher Nolan, 4175526, 10.00
 The dark knight rises, Action, 2012.07.19, 164min, US, 15, Christopher Nolan, 6399304, 9.02
