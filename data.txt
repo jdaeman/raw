@@ -3,8 +3,8 @@ Batman begins, Action, 2005.06.24, 139min, US, 12, Christopher Nolan, 869244, 8.
 The dark knight, Action, 2008.08.06, 152min, US, 15, Christopher Nolan, 4175526, 10.00
 The dark knight rises, Action, 2012.07.19, 164min, US, 15, Christopher Nolan, 6399304, 9.02
 The man from nowhere, Action, 2010.08.04, 119min, korea, 19, Lee Jeong Beom, 6178665, 9.23
-Confidential Assignment, Action, 2017.01.18, 125min, korea, 15, Kim Sung Hoon, 7817654, 8.83
-Exit, comedy, 2019.07.31, 103m, Korea, 12, Lee Sang Keun, 9418930, 9.01
+공조, Action, 2017.01.18, 125min, korea, 15, 김상훈, 7817654, 8.83
+엑시트, comedy, 2019.07.31, 103m, Korea, 12, 이상근, 9418930, 9.01
 Iron man, SF, 2008.04.30, 125m, US, 12, Jon Favreau, 4300365, 8.91
 Iron man2, SF, 2010.04.29, 125m, US, 12, Jon Favreau, 4425235, 7.36
 Iron man3, SF, 2013.04.25, 129m, US, 12, Shane Black, 9001679, 8.86
@@ -27,17 +27,17 @@ Maggie Gyllenhaal, 1997.11.16, female,    레이첼 도스
 Anne Hathaway, 1982.11.12, female,        셀리나 카일
 Tom Hardy, 1977.09.15, male,                베인
 
-원빈, 1977.11.10, male, 차태식
-김새론, 2000.07.31, female, 소미
-김태훈, 1975.05.26, male, 김치곤
-김희원, 1971.01.10, male, 만석
-김성오, 1978.09.15, male, 종석
+원빈, 1977.11.10, male,                        차태식
+김새론, 2000.07.31, female,                    소미
+김태훈, 1975.05.26, male,                      김치곤
+김희원, 1971.01.10, male,                      만석
+김성오, 1978.09.15, male,                     종석
 
-조정석, 1980.12.26, male, 용남
-윤아, 1990.05.30, female, 의주
-고두심, 1951.05.22, female, 현옥
-박인환, 1945.01.16, male, 장수
-김지영, 1974.09.07, female, 정현
+조정석, 1980.12.26, male,                      용남
+윤아, 1990.05.30, female,                       의주
+고두심, 1951.05.22, female,                     현옥
+박인환, 1945.01.16, male,                       장수
+김지영, 1974.09.07, female,                     정현
 
 Robert Downey Jr, 1965.04.04, male,                  토니 스타크
 Terrence Howard, 1969.03.11, male,                   제임스 로드
