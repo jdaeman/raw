@@ -1,73 +1,118 @@
-//영화 정보
+//데이터베이스 생성
+create database project;
+
+//테이블 생성
+use project;
+create table movie (
+	m_id int not null auto_increment,
+	title varchar(128) not null,
+	genre varchar(64) not null,
+	release_date date not null,
+	run_time int not null,
+	country varchar(64) not null,
+	admission int not null,
+	director varchar(64) not null,
+	attendance int not null,
+	grade float not null,
+	--pic blob,
+
+	primary key (id)
+);
+create table actor (
+	a_id int not null auto_increment,
+	name varchar(128) not null,
+	birth date not null,
+	gender varchar(8) not null,
+	--pic blob,
+
+	primary key (a_id)
+);
+create table awards (
+	year year not null,
+	award varchar(128) not null,
+	a_id int not null,
+
+	foreign key (a_id) references actor(a_id)
+);
+create table takes (
+	role varchar(128) not null,
+	m_id int not null,
+	a_id int not null,
+
+	foreign key (m_id) references movie(m_id),
+	foreign key (a_id) references actor(p_id)
+);
+
+//영화 정보(movie)
 insert into movie values (null, 'Batman begins', 'Action', '2005-06-24', 139, 'US', 12, 'Christopher Nolan', 869244, 8.93);
+insert into movie values (null, 'The dark knight', 'Action', '2008-08-06', 152, 'US', 15, 'Christopher Nolan', 4175526, 10.00);
+insert into movie values (null, 'The dark knight rises', 'Action', '2012-07-19', 164, 'US', 15, 'Christopher Nolan', 6399304, 9.02);
+insert into movie values (null, '아저씨', 'Action', '2010-08-04', 119, 'korea', 19, '이정범', 6178665, 9.23);
+insert into movie values (null, '공조', 'Action', '2017-01-18', 125, 'korea', 15, '김상훈,' 7817654, 8.83);
+insert into movie values (null, '엑시트', 'comedy', '2019-07-31', 103, 'Korea', 12, '이상근', 9418930, 9.01);
+insert into movie values (null, 'Iron man', 'SF', '2008-04-30', 125, 'US', 12, 'Jon Favreau', 4300365, 8.91);
+insert into movie values (null, 'Iron man2', 'SF', '2010-04-29, 125, 'US', 12, 'Jon Favreau', 4425235, 7.36);
+insert into movie values (null, 'Iron man3', 'SF', '2013-04-25', 129, 'US', 12, 'Shane Black', 9001679, 8.86);
+insert into movie values (null, 'The Avengers', 'SF', '2012-04-26', '142', 'US', 12, 'Joss Whedon', 7075607, 8.80);
+insert into movie values (null, 'The Avengers: Age of Ultron', 'Action', '2015-04-23'. 141, 'US', 12, 'Joss Whedon', 10494840, 8.59);
+insert into movie values (null, 'Avengers: Infinity War', 'Action', '2018-04-25', 149, 'US', 12, 'Russo Brothers', 11212710, 9.08);
+insert into movie values (null, 'Avengers: Endgame', 'SF', '2019-04-24', 181, 'US', 12, 'Russo Brothers', 13934604, 9.50);
 
-Batman begins, Action, 2005.06.24, 139min, US, 12, Christopher Nolan, 869244, 8.93
-The dark knight, Action, 2008.08.06, 152min, US, 15, Christopher Nolan, 4175526, 10.00
-The dark knight rises, Action, 2012.07.19, 164min, US, 15, Christopher Nolan, 6399304, 9.02
-The man from nowhere, Action, 2010.08.04, 119min, korea, 19, Lee Jeong Beom, 6178665, 9.23
-공조, Action, 2017.01.18, 125min, korea, 15, 김상훈, 7817654, 8.83
-엑시트, comedy, 2019.07.31, 103m, Korea, 12, 이상근, 9418930, 9.01
-Iron man, SF, 2008.04.30, 125m, US, 12, Jon Favreau, 4300365, 8.91
-Iron man2, SF, 2010.04.29, 125m, US, 12, Jon Favreau, 4425235, 7.36
-Iron man3, SF, 2013.04.25, 129m, US, 12, Shane Black, 9001679, 8.86
-The Avengers, SF, 2012.04.26, 142m, US, 12, Joss Whedon, 7075607, 8.80
-The Avengers: Age of Ultron, action, 2015.04.23. 141, US, 12, Joss Whedon, 10494840, 8.59
-Avengers: Infinity War, Action, 2018.04.25, 149m, US, 12, Russo Brothers, 11212710, 9.08
-Avengers: Endgame, SF, 2019.04.24, 181m, US, 12, Russo Brothers, 13934604, 9.50
+//배우 정보(actor)
+insert into actor values (null, 'Christian Bale', '1974-01-30', 'male');	--브루스 웨인
+insert into actor values (null, 'Michael Caine', '1933-03-14', 'male');	--알프레드
+insert into actor values (null, 'Liam Nesson', '1952-06-07', 'male');	-- 라스알굴
+insert into actor values (null, 'Katie Holmes', '1978-12-18', 'female');	-- 레이첼 도스
+insert into actor values (null, 'Gary Oldman', '1958-03-21', 'male');	-- 짐 고든
+insert into actor values (null, 'Heath Ledger', '1979-04-04', 'male');	-- 조커
+insert into actor values (null, 'Aaron Eckhart', '1968-03-12', 'male');	-- 하비 덴트
+insert into actor values (null, 'Maggie Gyllenhaal', '1997-11-16', 'female')	-- 레이첼 도스
+insert into actor values (null, 'Anne Hathaway', '1982-11-12', 'female');	-- 셀리나 카일
+insert into actor values (null, 'Tom Hardy', '1977-09-15', 'male');	-- 베인
 
-//배우 정보
-insert into actor VALUES (null, 'Christian Bale', '1974-01-30', 'male');
+insert into actor values (null, '원빈', '1977-11-10', 'male');  	-- 차태식
+insert into actor values (null, '김새론', '2000-07-31', 'female');  --소미
+insert into actor values (null, '김태훈', '1975-05-26', 'male');	--  김치곤
+insert into actor values (null, '김희원', '1971-01-10', 'male'); 	--만석
+insert into actor values (null, '김성오', '1978-09-15', 'male');    --종석
 
-Christian Bale, 1974.01.30, male,        브루스 웨인
-Michael Caine, 1933.03.14, male,        알프레드
-Liam Nesson, 1952.06.07, male,          라스알굴
-Katie Holmes, 1978.12.18, female,        레이첼 도스
-Gary Oldman, 1958.03.21, male,          짐 고든
+insert into actor values (null, '조정석', '1980-12-26', 'male');	--용남
+insert into actor values (null, '임윤아', '1990-05-30', 'female');	--의주
+insert into actor values (null, '고두심', '1951-05-22', 'female');	--현옥
+insert into actor values (null, '박인환', '1945-01-16', 'male');	--장수
+insert into actor values (null, '김지영', '1974-09-07', 'female');	--정현
 
-Heath Ledger, 1979.04.04, male,           조커
-Aaron Eckhart, 1968.03.12, male,           하비 덴트
-Maggie Gyllenhaal, 1997.11.16, female,    레이첼 도스
+insert into actor values (null, 'Robert Downey Jr', '1965-04-04', 'male');	--토니 스타크
+insert into actor values (null, 'Terrence Howard', '1969-03-11', 'male');	--제임스 로드
+insert into actor values (null, 'Jeff Bridges', '1949-12-04', 'male');	--오베디아
+insert into actor values (null, 'Gwyneth Paltrow', '1972-09-27', 'female');	--페퍼 포츠
 
-Anne Hathaway, 1982.11.12, female,        셀리나 카일
-Tom Hardy, 1977.09.15, male,                베인
+insert into actor values (null, 'Don Cheadle', '1964-11-29', 'male');	--제임스 로드
+insert into actor values (null, 'Scarlett Johansson', '1984-11-22', 'female');	--블랙 위도우,
+insert into actor values (null, 'Mickey Rourke', '1952-09-16', 'male');	--이안 반코
 
-원빈, 1977.11.10, male,                        차태식
-김새론, 2000.07.31, female,                    소미
-김태훈, 1975.05.26, male,                      김치곤
-김희원, 1971.01.10, male,                      만석
-김성오, 1978.09.15, male,                     종석
+insert into actor values (null, 'Ben kingsley', '1943-12-31', 'male');	--만다린
+insert into actor values (null, 'Guy Pearce', '1967-10-05', 'male');	--킬리언
 
-조정석, 1980.12.26, male,                      용남
-윤아, 1990.05.30, female,                       의주
-고두심, 1951.05.22, female,                     현옥
-박인환, 1945.01.16, male,                       장수
-김지영, 1974.09.07, female,                     정현
-
-Robert Downey Jr, 1965.04.04, male,                  토니 스타크
-Terrence Howard, 1969.03.11, male,                   제임스 로드
-Jeff Bridges, 1949.12.04, male,                           오베디아
-Gwyneth Paltrow, 1972.09.27, female,                  페퍼 포츠
-
-Don Cheadle, 1964.11.29, male,                       제임스 로드
-Scarlett Johansson, 1984.11.22, female,             블랙 위도우,
-Mickey Rourke, 1952.09.16, male,                    이안 반코
-
-Ben kingsley, 1943.12.31, male,                       만다린
-Guy Pearce, 1967.10.05, male,                        킬리언
-
-Chirs Hemsworth, 1983.08.11, male                 토르
-Chris Evans, 1981.06.13, male                        스티브 로저스
-Mark Ruffalo, 1967.11.22, male,                     브루스 배너
+insert into actor values (null, 'Chirs Hemsworth', '1983-08-11', 'male');	--토르
+insert into actor values (null, 'Chris Evans', '1981-06-13', 'male');	--스티브 로저스
+insert into actor values (null, 'Mark Ruffalo', '1967-11-22', 'male');	--브루스 배너
 
 //어벤저스2는 어벤저스1과 동일
 
-Josh Brolin, 1968.02.12, male,                     타노스
-Benedict Cumberbatch, 1976.07.19, male      닥터 스트레인지
+insert into actor values (null, 'Josh Brolin', '1968-02-12', 'male');	--타노스
+insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	--닥터 스트레인지
 
 //어벤저스4는 어벤저스3과 동일
 
-//수상 정보
-Christian Bale, 2019, Golden Glove
+//출연 정보(cast)
+insert into cast values (
+
+
+//수상 정보(awards)
+insert into awards values (
+
+Christian Bale, '2019', 'Golden Glove'
                    2016, Satellite Awards
 
 Michael Caine, 2015, 유럽영화상
