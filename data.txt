@@ -104,11 +104,11 @@ insert into actor values (null, 'Josh Brolin', '1968-02-12', 'male');	#타노스
 insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	#닥터 스트레인지
 
 
-//출연 정보(cast)
-insert into cast values (26, 1, '브루스 웨인');
+//출연 정보(cast) - (m_id, a_id, );
+insert into cast values (1, 1, '브루스 웨인');
 
 //수상 정보(awards)
-insert into awards values (
+insert into awards values (a_id, year, awards);
 
 Christian Bale, '2019', 'Golden Glove'
                    2016, Satellite Awards
