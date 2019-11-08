@@ -28,17 +28,17 @@ create table actor (
 	primary key (a_id)
 );
 create table awards (
+	a_id int not null,
 	year year not null,
 	award varchar(128) not null,
-	a_id int not null,
-
+	
 	foreign key (a_id) references actor(a_id)
 );
 create table takes (
-	role varchar(128) not null,
 	m_id int not null,
 	a_id int not null,
-
+	role varchar(128) not null,
+	
 	foreign key (m_id) references movie(m_id),
 	foreign key (a_id) references actor(p_id)
 );
@@ -105,8 +105,7 @@ insert into actor values (null, 'Benedict Cumberbatch', '1976-07-19', 'male');	#
 
 
 //출연 정보(cast)
-insert into cast values (
-
+insert into cast values (26, 1, '브루스 웨인');
 
 //수상 정보(awards)
 insert into awards values (
