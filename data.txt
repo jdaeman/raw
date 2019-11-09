@@ -230,14 +230,47 @@ insert into awards values (19, '2000', 'SBS 연기대상 최우수연기상');
 
 insert into awards values (20, '2016', 'SAF 연기대상 여자 우수연기상');
 
-###########################
+insert into awards values (21, '2015', 'MTV영화제 제너레이션상');
 
-Robert Downey Jr, 2015, MTV영화제
+insert into awards values (22, '2006', '팜스프링스 국제영화제 라이징스타상');
+insert into awards values (22, '2006', '벤쿠버 비평가협회 남우조연상');
 
-Terrence Howard, 2005, Satellite Awards
+insert into awards values (23, '2017', '산타바바라 국제영화제 아메리칸 리비에라상');
 
-Jeff Bridges, 2019, Gloden Glove
+insert into awards values (24, '2011', '밤비 미디어 어워즈 필름 인터네셔널상');
 
-Gwyneth Paltrow, 2011, 밤비 미디어 어워즈
+insert into awards values (25, '2013', '골든 글로브 시상식 남우주연상');
+insert into awards values (25, '2012', '블랙릴어워즈 남우조연상');
 
-//돈 치들 부터
+insert into awards values (26, '2013', '로마국제영화제 여우주연상');
+insert into awards values (26, '2010', '토니상 연극부문 여우조연상');
+
+insert into awards values (27, '2009', '산타바바라국제영화제 리비에라상');
+insert into awards values (27, '2009', '온라인 영화 비평가 협회상 남우주연상');
+
+insert into awards values (28, '2014', '새턴 어워즈 남우조연상');
+insert into awards values (28, '2002', '크리틱스 초이스 시상식 남우조연상');
+
+insert into awards values (29, '2002', '라스베가스 영퐈비평가협회상 남우조연상');
+
+insert into awards values (30, '2013', 'MTV영화제 최고의 싸움상');
+
+insert into awards values (31, '2013', 'MTV영화제 최고의 싸움상');
+
+insert into awards values (32, '2016', '산타바바라 국제영화제 아메리칸 리비에라상');
+
+insert into awards values (33, '2008', '할리우드 영화제 올해의 배우상');
+insert into awards values (33, '2008', '전미비평가협회 최우수 남자조연상');
+
+insert into awards values (34, '2019', '영국 아카데미 TV 어워드 남우주연상');
+insert into awards values (34, '2015', '대영 제국 훈장');
+insert into awards values (34, '2014', '할리우드 필름 어워드 남우주연상');
+
+#insert into awards values (35, '2011', '백상예술대상 TV부문 대상');
+
+#insert into awards values (36, '2015', '황금촬영상 시상식 최우수 남우조연상');
+
+#insert into awards values (37, '2019', '백상예술대상 남자 조연상');
+#insert into awards values (37, '2018', '청룡영화상 남우조연상');
+
+
