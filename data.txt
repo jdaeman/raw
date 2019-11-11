@@ -14,7 +14,7 @@ create table movie (
 	director varchar(64) not null,
 	attendance int not null,
 	grade float not null,
-	--pic blob,
+	#pic blob,
 
 	primary key (id)
 );
@@ -23,7 +23,7 @@ create table actor (
 	name varchar(128) not null,
 	birth date not null,
 	gender varchar(8) not null,
-	--pic blob,
+	#pic blob,
 
 	primary key (a_id)
 );
