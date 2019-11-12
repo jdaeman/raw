@@ -11,7 +11,14 @@ from actor;
 
 -----2
 select name
-from movie natural join cast
-where movie(title) = 'The dark knight';
+from actor
+where actor.a_id in (select a_id
+                     from cast
+                     where m_id = (
+                         select m_id
+                         from movie
+                         where title="The dark knight"
+                         )
+                     );
 
 -----3
