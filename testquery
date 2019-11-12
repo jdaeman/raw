@@ -10,8 +10,8 @@ select *
 from actor;
 
 -----2
-select name
-from actor
+select distinct name, role
+from actor natural join cast
 where actor.a_id in (select a_id
                      from cast
                      where m_id = (
