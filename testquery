@@ -21,6 +21,20 @@ where actor.a_id in (select a_id
                          )
                      );
 
+use project;
+with target(id) as (
+    select m_id
+    from movie
+    where title="The dark knight"),
+    casting(id, role) as (
+        select a_id, role
+        from cast, target
+        where m_id=target.id)
+
+select actor.name, casting.role
+from actor, casting
+where actor.a_id=casting.id;
+
 -----3
 select "Benedict Cumberbatch" as name, P.year, P.award
 from awards as P
