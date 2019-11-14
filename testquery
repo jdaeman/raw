@@ -27,3 +27,12 @@ from awards as P
 where P.a_id=(select a_id
        from actor
        where name="Benedict Cumberbatch");
+
+use project;
+with target(id, name) as (
+select a_id, name
+from actor
+where name="Benedict Cumberbatch")
+select target.name, P.year, P.award
+from awards as P, target
+where P.a_id=target.id;
