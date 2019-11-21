@@ -144,20 +144,20 @@ int init_base()
 
 socket_err:
 	perror("socket() error");
-	exit(-1);
+	goto finish;
 if_nameindex_err:
 	perror("if_nameindex() error");
-	close(sock);
-	exit(-1);
+	goto free_sock;
 out_of_bound:
 	printf("Invalid choice: %d\n", index + 1);
-	close(sock);
-	if_freenameindex(if_arr);
-	exit(-1);
+	goto free_resource;
 gateway_err:
 	perror("get_gateway() error");
-	close(sock);
+free_resource:
 	if_freenameindex(if_arr);
+free_sock:
+	close(sock);
+finish:
 	exit(-1);
 }
 
