@@ -11,18 +11,20 @@
 #include <linux/rtnetlink.h>
 #include <sys/socket.h>
 
+#include <arpa/inet.h>
+
 #define BUF_SIZE 8192
 
 static int send_request(int nl_sock, int type, int * nlseq)
 {
-	struct nlmsghdr * nlmsg;
+	struct nlmsghdr * nlmsg; //Netlink message header
 	unsigned char buf[BUF_SIZE];
 
 	nlmsg = (struct nlmsghdr *)buf;
 	memset(buf, 0, BUF_SIZE);
 	nlmsg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg)); //routing message
-	nlmsg->nlmsg_type = type;
-	nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST; //maybe default?
+	nlmsg->nlmsg_type = type; //RTM_GETROUTE or RTM_GETNEIGH
+	nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST; //maybe default setting?
 	nlmsg->nlmsg_seq = (*nlseq)++; //sequence
 	nlmsg->nlmsg_pid = getpid(); //for distinguish
 
@@ -63,18 +65,18 @@ static int recv_response(int nl_sock, unsigned char * buf, int nlseq)
 	return tot_len;
 }
 
-static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, unsigned char * mac)
+static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, unsigned char * mac, int index)
 {
 	struct nlmsghdr * nlmsg;
 	struct rtmsg * rtmsg;
 	struct ndmsg * ndmsg;
 	struct rtattr * attr;
-	unsigned int tmp = 0, len;
+	unsigned int tmp = 0, len = 0, who = 1;
 
 	nlmsg = (struct nlmsghdr *)buf;
 	for (; NLMSG_OK(nlmsg, tot_len); nlmsg = NLMSG_NEXT(nlmsg, tot_len))
 	{
-		if (!mac)
+		if (!mac) //pointer ip is valid
 		{
 			rtmsg = (struct rtmsg *)(NLMSG_DATA(nlmsg));
 
@@ -82,7 +84,7 @@ static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, u
 				continue;
 			attr = (struct rtattr *)(RTM_RTA(rtmsg));
 		}
-		else
+		else //pointer mac is valid
 		{
 			ndmsg = (struct ndmsg *)(NLMSG_DATA(nlmsg));
 		
@@ -98,13 +100,25 @@ static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, u
 			{
 				if (attr->rta_type != RTA_GATEWAY)
 					continue;
-				memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
-				break;
+				if (who++ == index)
+					memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
+
+				/*{
+				 	인터페이스 번호 순서대로 디폴트 게이트웨이 주소가 출력됨.
+					unsigned int i = ntohl(*ip);
+					printf("%d.%d.%d.%d\n", (i & 0xff000000) >> 24,
+						(i & 0x00ff0000) >>16,
+						(i & 0x0000ff00) >> 8,
+						(i & 0x000000ff));
+				}*/
 			}
 			else
 			{
 				if (tmp == *ip && attr->rta_type == NDA_LLADDR)
+				{
 					memcpy(mac, RTA_DATA(attr), 6);
+					break;
+				}
 				if (attr->rta_type == NDA_DST)
 					memcpy(&tmp, (unsigned int *)RTA_DATA(attr), 4);
 				//printf("%x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
@@ -116,7 +130,7 @@ static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, u
 	return 0;
 }
 
-int get_gateway(unsigned int * ip, unsigned char * mac)
+int get_gateway(int index, unsigned int * ip, unsigned char * mac)
 {
 	int nl_sock;
 	unsigned char buf[BUF_SIZE], * ptr;
@@ -126,6 +140,7 @@ int get_gateway(unsigned int * ip, unsigned char * mac)
 	struct ndmsg * ndmsg; //nd? message
 	struct rtattr * attr; //routing attribute
 
+	//Netlink socket 사용 여부 확인
 	nl_sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (nl_sock < 0)
 		return -1; //perror
@@ -135,14 +150,14 @@ int get_gateway(unsigned int * ip, unsigned char * mac)
 		goto err_handle;
 	if ((msg_len = recv_response(nl_sock, buf, nlseq)) < 0)
 		goto err_handle;
-	parse_response(buf, msg_len, ip, NULL);	
+	parse_response(buf, msg_len, ip, NULL, index);	
 
 	//phase2, find default gateway mac address
 	if (send_request(nl_sock, RTM_GETNEIGH, &nlseq) < 0)
 		goto err_handle;
 	if ((msg_len = recv_response(nl_sock, buf, nlseq)) < 0)
 		goto err_handle;
-	parse_response(buf, msg_len, ip, mac);
+	parse_response(buf, msg_len, ip, mac, index);
 
 	//response parsing
 	/*nlmsg = (struct nlmsghdr *)buf;

