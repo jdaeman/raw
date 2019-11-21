@@ -1,0 +1,52 @@
+1. 아래는 primary key를 갖는 테이블들을 조회한 결과이다.
+2. 다음은 “다크나이트”라는 영화에 출연한 배우들의 이름을 조회한 결과이다.
+3. 다음은 특정 배우의 수상 경력을 조회한 결과이다.
+
+-----1
+select *
+from movie;
+
+select *
+from actor;
+
+-----2
+select distinct name, role
+from actor natural join cast
+where actor.a_id in (select a_id
+                     from cast
+                     where m_id = (
+                         select m_id
+                         from movie
+                         where title="The dark knight"
+                         )
+                     );
+
+use project;
+with target(id) as (
+    select m_id
+    from movie
+    where title="The dark knight"),
+    casting(id, role) as (
+        select a_id, role
+        from cast, target
+        where m_id=target.id)
+
+select actor.name, casting.role
+from actor, casting
+where actor.a_id=casting.id;
+
+-----3
+select "Benedict Cumberbatch" as name, P.year, P.award
+from awards as P
+where P.a_id=(select a_id
+       from actor
+       where name="Benedict Cumberbatch");
+
+use project;
+with target(id, name) as (
+select a_id, name
+from actor
+where name="Benedict Cumberbatch")
+select target.name, P.year, P.award
+from awards as P, target
+where P.a_id=target.id;
