@@ -40,7 +40,6 @@ static host this;
 static host gateway;
 
 static routine actions[3] = {scanning, spoofing, NULL};
-static int action = 0;
 
 static host * host_list[DEFAULT_HOST];
 
@@ -202,6 +201,16 @@ unsigned char * create_arp_packet(unsigned char * buf, unsigned short op,
 	return buf;
 }
 
+void reply_handle_cleanup(void * arg)
+{
+	int * args = (int *)arg;
+	if (args[0] == 2)
+	{
+		close(args[1]);
+		//printf("The end of reply_handle\n");
+	}
+}
+
 //Thread routine
 void * reply_handle(void * arg)
 {
@@ -210,6 +219,10 @@ void * reply_handle(void * arg)
 	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 	int * ptr_tot = (int *)arg;
 
+	int args[] = {0, sock};
+	args[0] = sizeof(args) / sizeof(int);
+	
+	pthread_cleanup_push(reply_handle_cleanup, args);
 	*ptr_tot = 0; //reset
 	while (1)
 	{
@@ -251,9 +264,8 @@ void * reply_handle(void * arg)
 	
 		(*ptr_tot) += 1;	
 	}	
-	
-	close(sock);
-	printf("End of thread\n");
+
+	pthread_cleanup_pop(0);
 	return NULL;
 }
 
