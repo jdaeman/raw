@@ -218,6 +218,7 @@ void * reply_handle(void * arg)
 	struct arphdr * arp;
 	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
 	int * ptr_tot = (int *)arg;
+	char vendor[32];
 
 	int args[] = {0, sock};
 	args[0] = sizeof(args) / sizeof(int);
@@ -256,9 +257,11 @@ void * reply_handle(void * arg)
 		host_list[nr] = (host *)malloc(sizeof(host));
 		target = host_list[nr];
 
-		printf("%s\t[%s]\tis alive\n", 
+		get_vendor(vendor, ptr - 6);
+
+		printf("%s\t[%s]\t[%s]\tis alive\n", 
 				inet_ntoa(*(struct in_addr *)ptr), //IP address
-				ether_ntoa((struct ether_addr *)(ptr - 6))); //MAC address
+				ether_ntoa((struct ether_addr *)(ptr - 6)), vendor); //MAC address
 
 		memcpy(&target->ip, ptr, 4);
 		memcpy(target->mac, ptr - 6, 6);
@@ -311,7 +314,8 @@ void scanning(int idx)
 	}
 	sleep(5); //wait for reply packets,
 
-	printf("\n\tHost Scanning Finished\nThere are [%d] hosts, except you\n\n", *tot);
+	printf("\nThere are [%d] hosts, Except you\n", *tot);
+	printf("\n\tHost Scanning Finished\n");
 
 	pthread_cancel(tid);
 	pthread_join(tid, NULL);
@@ -430,6 +434,8 @@ int main(int argc, char * argv[])
 	func = param_parse(argc, argv);
 
 	idx = init_base();
+
+	vendor_init("mac-vendor.txt");
 
 	actions[func](idx);	
 	

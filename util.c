@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +13,70 @@
 #include <arpa/inet.h>
 
 #define BUF_SIZE 8192
+
+static char * vendor_table[16777216]; //0xffffff
+
+int get_vendor(unsigned char * buf, unsigned char * mac)
+{
+	unsigned char rev[] = {mac[2], mac[1], mac[0]}; //reverse
+	int vendor_code = 0;
+
+	memcpy(&vendor_code, rev, 3);	
+
+	if (!vendor_table[vendor_code])
+	{
+		strcpy(buf, "Un-registered");
+		return -1; //fail
+	}
+
+	strcpy(buf, vendor_table[vendor_code]);
+	return 0; //success
+}		
+
+void vendor_init(const char * path)
+{
+	int transform[256];
+	int offset[] = {0x00100000, 0x00010000, 0x00001000, 0x00000100, 0x00000010, 0x00000001};
+	int idx, v;
+
+	FILE * fp = fopen(path, "r");
+	char buf[128];
+
+	if (!fp)
+	{
+		perror("fopen() error");
+		return;
+	}
+
+	for (idx = '0', v = 0; idx <= '9'; idx++)
+		transform[idx] = v++;
+	for (idx = 'A'; idx <= 'F'; idx++)
+		transform[idx] = v++;
+
+	while (fgets(buf, sizeof(buf), fp))
+	{
+		int len = strlen(buf);
+		char * ptr;
+
+		v = 0;
+		buf[len - 1] = 0; //remove '\n'
+
+		for (idx = 0; idx < 6; idx++) //ex) '112233' -> 0x112233
+			v += (transform[buf[idx]] * offset[idx]);
+
+		ptr = (char *)malloc(sizeof(char) * 32);
+		if (!ptr)
+		{
+			perror("malloc() error");
+			return;
+		}
+
+		strncpy(ptr, buf + 7, 31); //to store NULL
+		vendor_table[v] = ptr;
+	}
+
+	fclose(fp);
+}
 
 static int send_request(int nl_sock, int type, int * nlseq)
 {

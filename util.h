@@ -3,6 +3,10 @@
 
 extern int get_gateway(int index, unsigned int * ip, unsigned char * mac);
 
+extern int get_vendor(unsigned char * buf, unsigned char * mac);
+
+extern void vendor_init(const char * path);
+
 extern unsigned short cksum(unsigned short * buf, int len);
 
 extern int find_pids(const char ** list, int * plist, int len);
