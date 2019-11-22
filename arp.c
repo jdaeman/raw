@@ -24,9 +24,9 @@ extern struct ether_addr * ether_aton(const char *);
 
 typedef struct
 {
-	unsigned int ip;
+	unsigned int ip; //Network address + Host address
 	unsigned int subnet;
-	unsigned char mac[6];
+	unsigned char mac[6]; //Vendor code + LAN serial
 	//unsigned char vendor[64];
 }host;
 
@@ -120,7 +120,7 @@ int init_base()
 
 	itf = if_arr + index;
 
-	//인터페이스 이름이 먼저 설정되어야 함. 커널 함수와 관련이 있기 때문
+	//인터페이스 이름이 먼저 설정되어야 함. dev_get_by_name();
 	memcpy(ifr.ifr_name, itf->if_name, sizeof(ifr.ifr_name));
 
 	//IP address
@@ -208,7 +208,6 @@ void reply_handle_cleanup(void * arg)
 	if (args[0] == 2)
 	{
 		close(args[1]);
-		//printf("The end of reply_handle\n");
 	}
 }
 
@@ -310,7 +309,7 @@ void scanning(int idx)
 		sendto(arp_sock, buf, pkt_size, 0, (struct sockaddr *)&device, sizeof(device));
 		usleep(delay);
 	}
-	sleep(5); //wait for incoming reply packet,
+	sleep(5); //wait for reply packets,
 
 	printf("\n\tHost Scanning Finished\nThere are [%d] hosts, except you\n\n", *tot);
 
