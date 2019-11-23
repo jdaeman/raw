@@ -9,6 +9,7 @@
 #include <net/if.h>
 #include <linux/wireless.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include "util.h"
 
@@ -22,15 +23,8 @@ static const char * flags[] = {"UP", "BROADCAST", "DEBUG", "LOOPBACK",
 static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 				"REPEAT", "SECOND", "MONITOR", "MESH"};
 
-static const char * proc_list[] = {"NetworkManager", "wpa_supplicant"};
-
-static const char * caution = "Stop [NetworkManager], [wpa_supplicant] by using below command\n"
-				"\t#service NetworkManager/wpa_supplicant stop\n";
-
-
-static int is_end = 0;
-static unsigned char org_if[32];
-static unsigned char ch_if[32];
+static struct iwreq iwreq;
+static struct ifreq ifreq;
 
 struct ieee80211_hdr
 {
@@ -69,124 +63,122 @@ static void print_if_state(struct ifreq * ifreq)
 	puts("");
 }
 
-static int if_switch(int sock, struct ifreq * ifreq, int on)
+static int wifi_disconnect(int sock)
 {
-	unsigned short flag = (IFF_UP | IFF_RUNNING); 
+	char buf[IW_ESSID_MAX_SIZE + 1]; //32
+	char exec[] = "/bin/nmcli"; //NetworkManager Controller
+	char * argv[5] = {exec, "con", "down", buf, NULL};
+	int pid;
+	
+	iwreq.u.essid.pointer = buf;
+	iwreq.u.essid.length = sizeof(buf);
 
-	if (!ifreq)
+	ioctl(sock, SIOCGIWESSID, &iwreq);
+
+	if (!(pid = fork()))
+	{
+		//child process
+		extern char ** environ;
+		return execve(exec, argv, environ);
+	}
+	else
+		return pid;
+}
+
+static int wireless_mode_change(int sock, int mode)
+{
+	unsigned short flag = (IFF_UP | IFF_RUNNING);
+
+	//get interface flags
+	if (ioctl(sock, SIOCGIFFLAGS, &ifreq) < 0)
 		return -1;
 	
-	if (on)
-		ifreq->ifr_flags |= flag;
-	else
-		ifreq->ifr_flags &= ~flag;
-
-	if (ioctl(sock, SIOCSIFFLAGS, ifreq) < 0)
-		return -1;
-	return 0;	
-}
-
-static int wireless_mode_change(int sock, struct ifreq * ifreq, struct iwreq * iwreq, int mode)
-{
-	if (!ifreq || !iwreq)
+	//turn off interface
+	ifreq.ifr_flags &= ~flag;
+	if (ioctl(sock, SIOCSIFFLAGS, &ifreq) < 0)
 		return -1;
 
-	if (ioctl(sock, SIOCGIFFLAGS, ifreq) < 0)
+	//change operation mode
+	iwreq.u.mode = mode;
+	if (ioctl(sock, SIOCSIWMODE, &iwreq) < 0)
 		return -1;
 
-	if (if_switch(sock, ifreq, 0) < 0) //off the interface
+	//turn on interface
+	ifreq.ifr_flags |= flag;
+	if (ioctl(sock, SIOCSIFFLAGS, &ifreq) < 0)
 		return -1;
 
-	(iwreq->u).mode = mode;
-	if (ioctl(sock, SIOCSIWMODE, iwreq) < 0)
-		return -1;
-
-	if (if_switch(sock, ifreq, 1) < 0) //on the interface
-		return -1;
-
-	printf("%s, [%s] mode on\n", ifreq->ifr_name, modes[mode]);
 	return 0;
 }
 
-static void sigint_handle(int sig)
+static int init_base(int argc, char ** argv)
 {
-	is_end = 1;
-}
-
-static int send_sig(int * pids, int len, int sig)
-{
-	int i;
-	for (i = 0; i < len; i++)
-	{
-		if (kill(pids[i], sig) < 0)
-			return -1;
-	}
-	return 0;
-}
-int main(int argc, char ** argv)
-{
-	struct iwreq iwreq;
-	struct ifreq ifreq;
-	int sock, len;
-	int pids[10];
-	unsigned char buf[BUF_SIZE];
-
+	int sock, pid, status;
+	
 	if (argc == 1)
 	{
-		printf("there is no interface name\n");
-		return -1;
+		printf("There is no interface name\n");
+		exit(-1);
 	}
-	
+
 	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sock < 0)
 		goto socket_err;
 
-	memset(&iwreq, 0, sizeof(iwreq));
-	memset(&ifreq, 0, sizeof(ifreq));
-
 	strcpy(iwreq.ifr_ifrn.ifrn_name, argv[1]);
 	strcpy(ifreq.ifr_name, argv[1]);
 
-	signal(SIGINT, sigint_handle);	
-
-	//check whether the inteface is wireless.
+	//check wireless interface	
 	if (ioctl(sock, SIOCGIWMODE, &iwreq) < 0)
-	{
-		printf("%s is not support wireless network\n", argv[1]);
-		return -1;
-	}
-	else
-		printf("%s\n", caution);
-
-	//monitor mode on
-	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_MONITOR) < 0)
 		goto ioctl_err;
 
-	while (!is_end)
-	{
-		len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
+	//step1, 
+	pid = wifi_disconnect(sock);
+	if (pid < 0)
+		goto some_err;
+	waitpid(pid, &status, 0);
 
-		if (len <= 0)
-		{
-			perror("recvfrom() error");
-			break;
-		}
-
-		buf[len] = 0;
-		printf("%d\n", len);
-	}
-
-	if (wireless_mode_change(sock, &ifreq, &iwreq, IW_MODE_INFRA) < 0)
+	//step2, 
+	if (wireless_mode_change(sock, IW_MODE_MONITOR) < 0)
 		goto ioctl_err;
 
-	close(sock);
-	return 0;
+	//step3,
+	system("service NetworkManager restart");
+
+	return sock;
 
 socket_err:
 	perror("socket() error");
-	return -1;
+	goto finish;
 ioctl_err:
 	perror("ioctl() error");
+	goto free_resource;
+some_err:
+	perror("execve() error");
+free_resource:
 	close(sock);
-	return -1;
+finish:
+	exit(-1);
 }
+
+static void restore(int sock)
+{
+	wireless_mode_change(sock, IW_MODE_INFRA);
+
+	system("service NetworkManager restart");
+}
+
+int main(int argc, char ** argv)
+{
+	int sock;
+
+	sock = init_base(argc, argv);
+
+	//restore();
+
+	close(sock);
+
+	return 0;
+}
+
+
