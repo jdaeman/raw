@@ -24,5 +24,7 @@ void set_filter(int * list, int len);
 
 int is_avail(void);
 
+extern unsigned char * ieee80211_handle(unsigned char * pkt, unsigned char * buf, int len);
+
 #endif
 

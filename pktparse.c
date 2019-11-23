@@ -8,6 +8,7 @@
 #include <linux/if_arp.h> //arp header
 #include <linux/if_ether.h> //ethernet header
 #include "pktparse.h"
+#include "wireless.h"
 
 struct ether_addr;
 extern char * ether_ntoa(struct ether_addr *); //library fucntion
@@ -230,4 +231,18 @@ int is_avail()
 	else
 		return 0;
 
-} 
+}
+
+unsigned char * ieee80211_handle(unsigned char * pkt, unsigned char * buf, int len)
+{
+	struct ieee80211_hdr * ieee = (struct ieee80211_hdr *)pkt;
+
+	unsigned char ad1[32], ad2[32], ad3[32];
+
+	strcpy(ad1, ether_ntoa((struct ether_addr *)ieee->addr1));
+	strcpy(ad2, ether_ntoa((struct ether_addr *)ieee->addr2));
+	strcpy(ad3, ether_ntoa((struct ether_addr *)ieee->addr3));
+
+	sprintf(buf, "dest: %s\tsrc: %s\trouter: %s\n", ad1, ad2, ad3);
+	return buf;
+}

@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include "util.h"
+#include "pktparse.h"
 
 #define BUF_SIZE 4096
 
@@ -26,21 +27,8 @@ static const char * modes[] = {"AUTO", "ADHOC", "MANAGE", "MASTER",
 static struct iwreq iwreq;
 static struct ifreq ifreq;
 
-struct ieee80211_hdr
-{
-	unsigned short frame_control;
-	//protocol version:2, type:2, subtype:4, ToAP:1
-	//FromAP:1, morefrag: 1, Retry:1, pwrmgt: 1, moredata:1, WEP:1, Rsvd:1	
-	unsigned short duration_id;
-	unsigned char addr1[6]; //dest address
-	unsigned char addr2[6]; //src address
-	unsigned char addr3[6]; //router address
-	unsigned short seq_ctrl;
-	unsigned char addr4[6]; //used in adhoc
+static int cont = 1;
 
-	//payload, max 2312 bytes
-	//CRC, 4 bytes		
-};
 
 static void ieee80211_hdr_parse(char * pkt, int len)
 {
@@ -168,13 +156,45 @@ static void restore(int sock)
 	system("service NetworkManager restart");
 }
 
+void sighandle(int sig)
+{
+	if (sig == SIGINT)
+	{
+		cont = 0;
+	}
+}
+
+static void sniff(int sock)
+{
+	unsigned char buf[BUF_SIZE];
+	unsigned char parse[BUF_SIZE];
+
+	signal(SIGINT, sighandle);
+
+	while (cont)
+	{
+		int len = recvfrom(sock, buf, BUF_SIZE, 0, NULL, NULL);
+
+		if (len <= 0)
+		{
+			perror("recvfrom() error");
+			break;
+		}
+
+		ieee80211_handle(buf, parse, len);
+		printf("%s\n", parse);
+	}
+}
+
 int main(int argc, char ** argv)
 {
 	int sock;
 
 	sock = init_base(argc, argv);
+	
+	sniff(sock);
 
-	//restore();
+	restore(sock);
 
 	close(sock);
 
