@@ -25,6 +25,8 @@ int main(int argc, char ** argv)
 
 	icmp->checksum = cksum((unsigned short * )buf, 8 + 5);
 
+	printf("%#04x\n", icmp->checksum);
+
 	addr.sin_family = PF_INET;
 	addr.sin_addr.s_addr = inet_addr(argv[1]);
 

@@ -263,7 +263,25 @@ unsigned short cksum(unsigned short * buf, int len)
 	sum += (sum >> 16);
 	return (unsigned short)(~sum);*/
 
-	unsigned long sum = 0;
+	unsigned int sum = 0;
+	for (; len > 0; len -= 2)
+	{
+		if (len == 1)
+			sum += (unsigned short)(*(unsigned char *)buf);
+		else
+			sum += *(buf++);
+
+		while (sum & 0xffff0000)
+		{
+			unsigned int carry = (sum & 0xffff0000) >> 16;
+			sum &= 0x0000ffff;
+			sum += carry;
+		}	
+	}
+
+	return (unsigned short)~sum;
+
+	/*unsigned long sum = 0;
 	for(sum = 0; len > 1; len -= 2)
 	{
 		sum += *(buf++);	
@@ -277,7 +295,7 @@ unsigned short cksum(unsigned short * buf, int len)
 
 	sum = (sum >> 16) + (sum & 0xffff);
 	sum += (sum >> 16);
-	return (unsigned short)(~sum);
+	return (unsigned short)(~sum);*/
 }
 
 int find_pids(const char ** list, pid_t * plist, int len)
