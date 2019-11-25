@@ -9,6 +9,8 @@ extern void vendor_init(const char * path);
 
 extern unsigned short cksum(unsigned short * buf, int len);
 
+extern unsigned char * ether_ntoa_e(unsigned char * mac);
+
 extern int find_pids(const char ** list, int * plist, int len);
 
 #endif

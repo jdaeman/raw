@@ -16,6 +16,16 @@
 
 static char * vendor_table[16777216]; //0xffffff
 
+unsigned char * ether_ntoa_e(unsigned char * mac)
+{
+	static unsigned char hf_mac[32];
+
+	sprintf(hf_mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	return hf_mac;
+}
+
 int get_vendor(unsigned char * buf, unsigned char * mac)
 {
 	unsigned char rev[] = {mac[2], mac[1], mac[0]}; //reverse
@@ -167,8 +177,10 @@ static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, u
 					memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
 
 				/*{
-				 	인터페이스 번호 순서대로 디폴트 게이트웨이 주소가 출력됨.
-					unsigned int i = ntohl(*ip);
+					unsigned int zz;
+					memcpy(&zz, (unsigned int *)RTA_DATA(attr), 4);
+				 	//인터페이스 번호 순서대로 디폴트 게이트웨이 주소가 출력됨.
+					unsigned int i = ntohl(zz);
 					printf("%d.%d.%d.%d\n", (i & 0xff000000) >> 24,
 						(i & 0x00ff0000) >>16,
 						(i & 0x0000ff00) >> 8,
@@ -202,6 +214,8 @@ int get_gateway(int index, unsigned int * ip, unsigned char * mac)
 	struct nlmsghdr * nlmsg; //netlink message
 	struct ndmsg * ndmsg; //nd? message
 	struct rtattr * attr; //routing attribute
+
+	index--;
 
 	//Netlink socket 사용 여부 확인
 	nl_sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
