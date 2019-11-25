@@ -22,6 +22,9 @@ wireless : $(WLESS)
 icmp :
 	echo Implmenting
 
+vendor-update :
+	echo implementing
+
 clean :
 	rm -f $(EXE) $(ARP_EXE) $(WLESS_EXE)
 
