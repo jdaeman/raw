@@ -3,8 +3,43 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/icmp.h>
-#include "util.c"
+#include "util.h"
 
+static int param_parse(int argc, char ** argv[])
+{
+	int ret = 0, idx = 1;
+
+	if (argc == 1)
+	{
+		//print usage
+		exit(-1);
+	}
+	
+	if (!strcmp(argv[idx], "ping"))
+	{
+		ret = 0;
+	}
+	else if (!strcmp(argv[idx]), "trace")
+	{
+		ret = 1;
+	}
+	else
+	{
+		printf("Invalid command: %s\n", argv[idx]);
+		exit(-1);
+	}
+
+		
+		
+}
+
+//simple echo request
+//trace route
+//
+//./icmp ping ip-address message -- IP_HDRINCL (x)
+//./icmp trace ip-address -- IP_HDRINCL (o)
+//gethostbyaddr() : domain -> ip
+//need not interface name
 int main(int argc, char ** argv)
 {
 	int sock = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);

@@ -8,6 +8,8 @@ ARP_EXE := arp
 WLESS_SRC := wireless.c util.c pktparse.c
 WLESS_EXE := wireless
 
+ICMP_SRC := icmp.c util.c
+
 sniff : $(SRC)
 	$(CC) $(SRC) -o $(EXE)
 
@@ -16,6 +18,9 @@ arp : $(ARP_SRC)
 
 wireless : $(WLESS)
 	$(CC) $(WLESS_SRC) -o $(WLESS_EXE)
+
+icmp :
+	echo Implmenting
 
 clean :
 	rm -f $(EXE) $(ARP_EXE) $(WLESS_EXE)
