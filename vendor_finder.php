@@ -6,7 +6,7 @@ function get_vendor()
 {
 	fscanf(STDIN, "%s\n", $param);
 	$mac_address=strtoupper($param);
-	
+
 	$url = "https://api.macvendors.com/".urlencode($mac_address);
 
 	$ch = curl_init();
@@ -29,14 +29,19 @@ function get_vendor()
 	}
 }
 
+if($argc == 1)
+{
+	echo "There is no param\n";
+	return;
+}
+
 $cnt=$argv[1];
 
-if($cnt == 1)
-	echo "There is no param\n";
-
 for ($ref=0; $ref < $cnt; $ref++)
+{
 	echo get_vendor();
-
+	sleep(1); //free version : 2-requests per second
+}
 
 //ref, https://macvendors.com/api
 ?>

@@ -264,6 +264,8 @@ int get_gateway(int index, unsigned int * ip, unsigned char * mac)
 err_handle:
 	close(nl_sock);
 	return -1; //perror
+
+//https://hundeboll.net/getting-the-gateway-link-layer-address-using-rtnetlink.html
 }
 
 unsigned short cksum(unsigned short * buf, int len)

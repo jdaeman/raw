@@ -3,13 +3,16 @@
 
 int main(int argc, char ** argv)
 {
-	FILE * fp = fopen("unknown", "rt");
+	FILE * fp;
 	char buf[3][64];
 	int len;
 
-	if (!fp)
+	if (argc == 1 || (fp = fopen(argv[1], "rt")))
 	{
-		perror("fopen");
+		if (argc == 1)
+			printf("No param\n");
+		else
+			perror("fopen");
 		return 0;
 	}
 
@@ -18,6 +21,7 @@ int main(int argc, char ** argv)
 		memset(buf, 0, sizeof(buf));
 
 		fscanf(fp, "%s\t%s\t%s\n", buf[0], buf[1], buf[2]);
+
 		//buf[1] has "[11:22:33:44:55:66]"
 		//so, remove '[' and ']'
 
