@@ -100,6 +100,11 @@ static int set_ip_handle(int sock)
 	return 0;
 }
 
+static inline int set_ip_ttl(int sock, int ttl)
+{
+	return setsockopt(sock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+}
+
 static int create_ip_packet(unsigned char * pkt, unsigned int src, unsigned int dst,
 	       int ttl, int proto)
 {
@@ -142,6 +147,7 @@ static int ping(const char * msg)
 	memset(buf, 0, sizeof(buf));
 	len = create_icmp_packet(buf, 8, 0, msg);
 
+
 	printf("\tSending echo request...\n");
 	for (cnt = 0; cnt < count; cnt++)
 	{
@@ -181,9 +187,7 @@ static int trace(const char * msg)
 		exit(-1);
 	}
 
-
-
-
+	//TTL:0 ~ 
 
 }
 
