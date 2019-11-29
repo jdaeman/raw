@@ -279,6 +279,8 @@ void scanning(int idx)
 	else
 		which = vip;
 
+	which = gateway.ip;
+
 	if (max > 8192) //unrealistic
 		max = 8192;
 

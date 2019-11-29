@@ -23053,3 +23053,171 @@ FCFC48	Apple, Inc.
 FCFE77	Hitachi Reftechno, Inc.
 FCFEC2	Invensys Controls UK Limited
 FCFFAA	IEEE Registration Authority
+40A3CC	Intel Corporate
+64C2DE	LG Electronics (Mobile Communications)
+BCFED9	Apple, Inc.
+344262	Apple, Inc.
+E0AA96	Samsung Electronics Co.,Ltd
+50BC96	Apple, Inc.
+FC1D43	Apple, Inc.
+34A8EB	Apple, Inc.
+C493D9	Samsung Electronics Co.,Ltd
+F8E94E	Apple, Inc.
+ACED5C	Intel Corporate
+507705	Samsung Electronics Co.,Ltd
+507705	Samsung Electronics Co.,Ltd
+74B587	Apple, Inc.
+E470B8	Intel Corporate
+E0897E	Apple, Inc.
+BCFED9	Apple, Inc.
+04D3B0	Intel Corporate
+804E70	Samsung Electronics Co.,Ltd
+BCB863	Apple, Inc.
+70C94E	Liteon Technology Corporation
+6CE85C	Apple, Inc.
+646E69	Liteon Technology Corporation
+D0B128	Samsung Electronics Co.,Ltd
+ACAFB9	Samsung Electronics Co.,Ltd
+A82BB9	Samsung Electronics Co.,Ltd
+04B429	Samsung Electronics Co.,Ltd
+04B429	Samsung Electronics Co.,Ltd
+BCA58B	Samsung Electronics Co.,Ltd
+D4A33D	Apple, Inc.
+F4AFE7	Apple, Inc.
+F82819	Liteon Technology Corporation
+507705	Samsung Electronics Co.,Ltd
+4C6BE8	Apple, Inc.
+08E689	Apple, Inc.
+F8E94E	Apple, Inc.
+D0C637	Intel Corporate
+6489F1	Samsung Electronics Co.,Ltd
+6CE85C	Apple, Inc.
+F8E94E	Apple, Inc.
+144F8A	Intel Corporate
+947BE7	Samsung Electronics Co.,Ltd
+0A2E4D	{"errors":{"detail":"Not Found"}}
+507705	Samsung Electronics Co.,Ltd
+409C28	Apple, Inc.
+647BCE	Samsung Electronics Co.,Ltd
+4C569D	Apple, Inc.
+48FDA3	Xiaomi Communications Co Ltd
+A056F3	Apple, Inc.
+F01898	Apple, Inc.
+7C7635	Intel Corporate
+D0C637	Intel Corporate
+F8A2D6	Liteon Technology Corporation
+08AED6	Samsung Electronics Co.,Ltd
+68FEF7	Apple, Inc.
+647033	Apple, Inc.
+4C6BE8	Apple, Inc.
+D4A33D	Apple, Inc.
+BCA58B	Samsung Electronics Co.,Ltd
+BCFED9	Apple, Inc.
+BCA58B	Samsung Electronics Co.,Ltd
+DCF756	Samsung Electronics Co.,Ltd
+D411A3	Samsung Electronics Co.,Ltd
+C42AD0	Apple, Inc.
+50BC96	Apple, Inc.
+4C6BE8	Apple, Inc.
+C09AD0	Apple, Inc.
+A483E7	Apple, Inc.
+DC7196	Intel Corporate
+A056F3	Apple, Inc.
+D4A33D	Apple, Inc.
+507705	Samsung Electronics Co.,Ltd
+D8F2CA	Intel Corporate
+E82A44	Liteon Technology Corporation
+889F6F	Samsung Electronics Co.,Ltd
+10F1F2	LG Electronics (Mobile Communications)
+982CBC	Intel Corporate
+08AED6	Samsung Electronics Co.,Ltd
+A82BB9	Samsung Electronics Co.,Ltd
+08AED6	Samsung Electronics Co.,Ltd
+344262	Apple, Inc.
+185680	Intel Corporate
+344262	Apple, Inc.
+D0B128	Samsung Electronics Co.,Ltd
+344262	Apple, Inc.
+A0AFBD	Intel Corporate
+C4618B	Apple, Inc.
+505BC2	Liteon Technology Corporation
+F83441	Intel Corporate
+C493D9	Samsung Electronics Co.,Ltd
+9822EF	Liteon Technology Corporation
+D0B128	Samsung Electronics Co.,Ltd
+507705	Samsung Electronics Co.,Ltd
+485F99	Cloud Network Technology (Samoa) Limited
+48605F	LG Electronics (Mobile Communications)
+04D3B0	Intel Corporate
+A4D931	Apple, Inc.
+60F677	Intel Corporate
+9822EF	Liteon Technology Corporation
+D46D6D	Intel Corporate
+BCB863	Apple, Inc.
+D4A33D	Apple, Inc.
+D0C637	Intel Corporate
+B46BFC	Intel Corporate
+647BCE	Samsung Electronics Co.,Ltd
+005B94	Apple, Inc.
+34A8EB	Apple, Inc.
+C0B658	Apple, Inc.
+90E17B	Apple, Inc.
+40BC60	Apple, Inc.
+005B94	Apple, Inc.
+08AED6	Samsung Electronics Co.,Ltd
+507705	Samsung Electronics Co.,Ltd
+D4258B	Intel Corporate
+F4D108	Intel Corporate
+F4D108	Intel Corporate
+14205E	Apple, Inc.
+D8F2CA	Intel Corporate
+B4F61C	Apple, Inc.
+F8E94E	Apple, Inc.
+9CE65E	Apple, Inc.
+507705	Samsung Electronics Co.,Ltd
+9CE65E	Apple, Inc.
+144F8A	Intel Corporate
+D4909C	Apple, Inc.
+F82819	Liteon Technology Corporation
+94F6D6	Apple, Inc.
+9822EF	Liteon Technology Corporation
+181DEA	Intel Corporate
+A4D931	Apple, Inc.
+0C5415	Intel Corporate
+F8E94E	Apple, Inc.
+80B03D	Apple, Inc.
+A82BB9	Samsung Electronics Co.,Ltd
+4C569D	Apple, Inc.
+98460A	Apple, Inc.
+D0C637	Intel Corporate
+C0A600	Apple, Inc.
+08AED6	Samsung Electronics Co.,Ltd
+74EB80	Samsung Electronics Co.,Ltd
+38BAF8	Intel Corporate
+305714	Apple, Inc.
+6CE85C	Apple, Inc.
+9CE063	Samsung Electronics Co.,Ltd
+08D46A	LG Electronics (Mobile Communications)
+E470B8	Intel Corporate
+50BC96	Apple, Inc.
+A82BB9	Samsung Electronics Co.,Ltd
+D411A3	Samsung Electronics Co.,Ltd
+88299C	Samsung Electronics Co.,Ltd
+74E5F9	Intel Corporate
+78886D	Apple, Inc.
+0C96E6	Cloud Network Technology (Samoa) Limited
+3CDCBC	Samsung Electronics Co.,Ltd
+1063C8	Liteon Technology Corporation
+40A3CC	Intel Corporate
+EC2CE2	Apple, Inc.
+64C2DE	LG Electronics (Mobile Communications)
+380025	Intel Corporate
+7470FD	Intel Corporate
+D8F2CA	Intel Corporate
+7C7635	Intel Corporate
+1C1BB5	Intel Corporate
+5076AF	Intel Corporate
+C49880	Apple, Inc.
+40A3CC	Intel Corporate
+A82BB9	Samsung Electronics Co.,Ltd
+505BC2	Liteon Technology Corporation
