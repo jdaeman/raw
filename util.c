@@ -9,12 +9,24 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <linux/if.h>
 
 #include <arpa/inet.h>
 
 #define BUF_SIZE 8192
 
 static char * vendor_table[16777216]; //0xffffff
+
+unsigned char * ether_ntoa_e(unsigned char * mac)
+{
+	static unsigned char hf_mac[32];
+
+	sprintf(hf_mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	return hf_mac;
+}
 
 int get_vendor(unsigned char * buf, unsigned char * mac)
 {
@@ -167,8 +179,10 @@ static int parse_response(unsigned char * buf, int tot_len, unsigned int * ip, u
 					memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
 
 				/*{
-				 	인터페이스 번호 순서대로 디폴트 게이트웨이 주소가 출력됨.
-					unsigned int i = ntohl(*ip);
+					unsigned int zz;
+					memcpy(&zz, (unsigned int *)RTA_DATA(attr), 4);
+				 	//인터페이스 번호 순서대로 디폴트 게이트웨이 주소가 출력됨.
+					unsigned int i = ntohl(zz);
 					printf("%d.%d.%d.%d\n", (i & 0xff000000) >> 24,
 						(i & 0x00ff0000) >>16,
 						(i & 0x0000ff00) >> 8,
@@ -203,6 +217,8 @@ int get_gateway(int index, unsigned int * ip, unsigned char * mac)
 	struct ndmsg * ndmsg; //nd? message
 	struct rtattr * attr; //routing attribute
 
+	index--;
+
 	//Netlink socket 사용 여부 확인
 	nl_sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (nl_sock < 0)
@@ -228,10 +244,27 @@ int get_gateway(int index, unsigned int * ip, unsigned char * mac)
 err_handle:
 	close(nl_sock);
 	return -1; //perror
+
+//https://hundeboll.net/getting-the-gateway-link-layer-address-using-rtnetlink.html
 }
 
+<<<<<<< HEAD
 unsigned short cksum(unsigned short * buf, int len)
 {	
+=======
+unsigned short cksum(unsigned char * buff, int len)
+{
+	/*unsigned long sum = 0;
+	for(sum = 0; n > 0; n -= 2)
+	{
+		sum += *(buf++);	
+	}
+	sum = (sum >> 16) + (sum & 0xffff);
+	sum += (sum >> 16);
+	return (unsigned short)(~sum);*/
+
+	unsigned short * buf = (unsigned short *)buff;
+>>>>>>> 3aa3f0463c94f89fcf0f277bec1cf0c0af920793
 	unsigned int sum = 0;
 
 	for (; len > 0; len -= 2)
@@ -294,6 +327,24 @@ int find_pids(const char ** list, pid_t * plist, int len)
 	closedir(dir);
 	if (idx < len)
 		return -1;	
+	return 0;
+}
+
+int get_host_address(int sock, const char * interface, unsigned int * ip)
+{
+	struct ifreq ifr;
+
+	memcpy(ifr.ifr_name, interface, strlen(interface));
+
+	//IP address
+	
+	if (ioctl(sock, SIOCGIFADDR, &ifr) < 0)
+	{
+		perror("ioctl() error");
+		return -1;
+	}
+
+	memcpy(ip, &ifr.ifr_addr.sa_data[2], sizeof(*ip));
 	return 0;
 }
 
