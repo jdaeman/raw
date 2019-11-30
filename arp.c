@@ -237,12 +237,9 @@ void * reply_handle(void * arg)
 
 		get_vendor(vendor, ptr - 6);
 
-		if (!no_print)
-		{
-			printf("%s\t[%s]\t[%s]\n", 
-					inet_ntoa(*(struct in_addr *)ptr), //IP address
-					ether_ntoa_e((ptr - 6)), vendor); //MAC address
-		}
+		printf("%s\t[%s]\t[%s]\n", 
+				inet_ntoa(*(struct in_addr *)ptr), //IP address
+				ether_ntoa_e((ptr - 6)), vendor); //MAC address
 
 		memcpy(&target->ip, ptr, 4);
 		memcpy(target->mac, ptr - 6, 6);
@@ -278,8 +275,6 @@ void scanning(int idx)
 		which = this.ip;
 	else
 		which = vip;
-
-	which = gateway.ip;
 
 	if (max > 8192) //unrealistic
 		max = 8192;
@@ -399,7 +394,7 @@ void spoofing(int idx) //default is for all hosts
 		sleep(1);
 	printf ("\tTake a Moment Plz\n");
 
-	for (t = 1; t <= max; t++)
+	for (t = 1; t < max; t++)
 	{
 		if (!tids[t])
 			continue;
