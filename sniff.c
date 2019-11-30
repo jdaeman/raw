@@ -16,7 +16,7 @@ static int open_mode;
 
 static void param_parse(int argc, char * argv[])
 {
-	int list[12];
+	int list[128];
 	int len = 0;
 
 	if (argc <= 1)
@@ -63,7 +63,7 @@ static int get_nic_index()
 {
 	struct if_nameindex * if_arr, * itf;
 	struct ifreq ifr;
-	int index;
+	int index, nr = 1;
 
 	if_arr = if_nameindex();
 	if (!if_arr)
@@ -72,14 +72,23 @@ static int get_nic_index()
 	printf("-----network interface list-----\n");
 	for (itf = if_arr; itf->if_index != 0 || itf->if_name != NULL; itf++)
 	{
-		printf("%s(%d)\n", itf->if_name, itf->if_index);
+		printf("%s(%d)\n", itf->if_name, nr++);
 	}
 	
-	if_freenameindex(if_arr);
-
 	printf("\nChoose interface index\n>> ");
 	scanf("%d", &index);
+	index -= 1;
 
+	if (index < 0 || index >= nr)
+	{
+		printf("Out of bound\n");
+		exit(-1);
+	} 
+		
+	itf = if_arr + index;
+	index = itf->if_index;
+
+	if_freenameindex(if_arr);
 	return index;
 err:
 	perror("if_nameindex() error");
@@ -90,7 +99,7 @@ err:
 static void sniff_start(int sock)
 {
 	static unsigned char buf[BUF_SIZE];
-	unsigned char parse[5][PARSE_SIZE];
+	unsigned char parse[5][PARSE_SIZE]; //tcp-ip 5 layer
 	unsigned char * ptr;
 	
 	while (1)
@@ -102,9 +111,10 @@ static void sniff_start(int sock)
 		{
 			perror("recvfrom() error");
 			break;
-			//continue;
 		}
+
 		buf[rcvs] = 0;
+
 		ptr = eth_handle(buf, parse[layer++], PARSE_SIZE);
 		while (ptr && next)
 			ptr = next(ptr, parse[layer++], PARSE_SIZE);
@@ -129,7 +139,8 @@ static int socket_open(int interface_index)
 	int sniff_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sniff_sock < 0)
 		goto socket_err;
-	
+
+	//outgoing packet capture	
 	memset(&sll, 0, sizeof(sll));
 	sll.sll_family = PF_PACKET;
 	sll.sll_ifindex = interface_index;
@@ -137,6 +148,7 @@ static int socket_open(int interface_index)
 	if (bind(sniff_sock, (struct sockaddr *)&sll, sizeof(sll)) < 0)
 		goto bind_err;
 
+	//promiscious mode
 	if (open_mode)
 	{
 		memset(&pm, 0, sizeof(pm));

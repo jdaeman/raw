@@ -221,28 +221,6 @@ int get_gateway(int index, unsigned int * ip, unsigned char * mac)
 	if ((msg_len = recv_response(nl_sock, buf, nlseq)) < 0)
 		goto err_handle;
 	parse_response(buf, msg_len, ip, mac, index);
-
-	//response parsing
-	/*nlmsg = (struct nlmsghdr *)buf;
-	for (; NLMSG_OK(nlmsg, tot_len); nlmsg = NLMSG_NEXT(nlmsg, tot_len))
-	{
-		ndmsg = (struct ndmsg *)(NLMSG_DATA(nlmsg));
-		
-		if (ndmsg->ndm_family != PF_INET)
-			continue;
-
-		attr = (struct rtattr *)(RTM_RTA(ndmsg));
-		len = RTM_PAYLOAD(nlmsg);
-
-		for (; RTA_OK(attr, len); attr = RTA_NEXT(attr, len))
-		{
-			if (attr->rta_type == NDA_LLADDR)
-				memcpy(mac, RTA_DATA(attr), 6);
-			if (attr->rta_type == NDA_DST)
-				memcpy(ip, (unsigned int *)RTA_DATA(attr), 4);
-		}
-
-	}*/
 	
 	close(nl_sock);
 	return 0;
@@ -253,17 +231,9 @@ err_handle:
 }
 
 unsigned short cksum(unsigned short * buf, int len)
-{
-	/*unsigned long sum = 0;
-	for(sum = 0; n > 0; n -= 2)
-	{
-		sum += *(buf++);	
-	}
-	sum = (sum >> 16) + (sum & 0xffff);
-	sum += (sum >> 16);
-	return (unsigned short)(~sum);*/
-
+{	
 	unsigned int sum = 0;
+
 	for (; len > 0; len -= 2)
 	{
 		if (len == 1)
@@ -280,22 +250,6 @@ unsigned short cksum(unsigned short * buf, int len)
 	}
 
 	return (unsigned short)~sum;
-
-	/*unsigned long sum = 0;
-	for(sum = 0; len > 1; len -= 2)
-	{
-		sum += *(buf++);	
-	}
-
-	if(len == 1)
-	{
-		unsigned short t = (unsigned short)(*((unsigned char *)buf));
-		sum += t;		
-	}
-
-	sum = (sum >> 16) + (sum & 0xffff);
-	sum += (sum >> 16);
-	return (unsigned short)(~sum);*/
 }
 
 int find_pids(const char ** list, pid_t * plist, int len)

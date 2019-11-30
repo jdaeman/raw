@@ -14,7 +14,7 @@
 #include "util.h"
 #include "pktparse.h"
 
-#define BUF_SIZE 4096
+#define BUF_SIZE 4096 + 1
 
 static const char * flags[] = {"UP", "BROADCAST", "DEBUG", "LOOPBACK",
 				"POINTTOPOINT", "NOTRAILERS", "RUNNING", "NOARP",
