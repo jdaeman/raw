@@ -46,25 +46,14 @@ static int param_parse(int argc, char ** argv)
 	}
 
 	if (idx + 1 < argc)
-		hostent = gethostbyname(argv[idx + 1]);
-		
-	if (!hostent)
 	{
-		herror("gethostbyname() error");
-		exit(-1);
-	}				
-	else
-	{
-		printf("Official Name: %s\n", hostent->h_name);
-		for (count = 0; hostent->h_addr_list[count]; count++)
+		if (get_domain_ip(target, 128, argv[idx + 1]) < 0)
 		{
-			target[count] = *(unsigned int *)hostent->h_addr_list[count];
-			printf("aliase: %s\n", 
-				inet_ntoa(*(struct in_addr*)&target[count]));
+			herror("DNS error");
+			exit(-1);
 		}
-	}	
-
-
+	}		
+		
 	if (idx + 2 < argc)
 		message = argv[idx + 2];
 
@@ -149,7 +138,7 @@ static int ping(const char * msg)
 
 
 	printf("\tSending echo request...\n");
-	for (cnt = 0; cnt < count; cnt++)
+	for (cnt = 0; target[cnt]; cnt++)
 	{
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = PF_INET;

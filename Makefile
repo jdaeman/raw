@@ -10,19 +10,14 @@ OPT := -lpthread
 WLESS_SRC := wireless.c util.c pktparse.c
 WLESS_EXE := wireless
 
-<<<<<<< HEAD
-default : sniff arp wireless	
-
-sniff : $(SNIFF_SRC)
-	$(CC) $(SNIFF_SRC) -o $(SNIFF_EXE)
-=======
 ICMP_SRC := icmp.c util.c
 
 LIST := list
 
+default : sniff arp wireless icmp	
+
 sniff : $(SRC)
-	$(CC) $(SRC) -o $(EXE)
->>>>>>> 3aa3f0463c94f89fcf0f277bec1cf0c0af920793
+	$(CC) $(SNIFF_SRC) -o $(SNIFF_EXE)
 
 arp : $(ARP_SRC)
 	$(CC) $(ARP_SRC) -o $(ARP_EXE) $(OPT)
@@ -41,15 +36,11 @@ vendor-update :
 	./vendor_finder.php $(subst $(LIST),,$(shell wc -w $(LIST))) < $(LIST) >> mac-vendor.txt
 
 clean :
-<<<<<<< HEAD
-	rm -f $(SNIFF_EXE) $(ARP_EXE) $(WLESS_EXE)
-=======
-	rm -f $(EXE) $(ARP_EXE) $(WLESS_EXE) icmp
+	rm -f $(SNIFF_EXE) $(ARP_EXE) $(WLESS_EXE) icmp
 
 
 #git add -A
 #git commit -m "file name"
 #git push
->>>>>>> 3aa3f0463c94f89fcf0f277bec1cf0c0af920793
 
 

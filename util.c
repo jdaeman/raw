@@ -13,6 +13,7 @@
 #include <linux/if.h>
 
 #include <arpa/inet.h>
+#include <netdb.h>
 
 #define BUF_SIZE 8192
 
@@ -248,10 +249,6 @@ err_handle:
 //https://hundeboll.net/getting-the-gateway-link-layer-address-using-rtnetlink.html
 }
 
-<<<<<<< HEAD
-unsigned short cksum(unsigned short * buf, int len)
-{	
-=======
 unsigned short cksum(unsigned char * buff, int len)
 {
 	/*unsigned long sum = 0;
@@ -264,7 +261,6 @@ unsigned short cksum(unsigned char * buff, int len)
 	return (unsigned short)(~sum);*/
 
 	unsigned short * buf = (unsigned short *)buff;
->>>>>>> 3aa3f0463c94f89fcf0f277bec1cf0c0af920793
 	unsigned int sum = 0;
 
 	for (; len > 0; len -= 2)
@@ -283,6 +279,24 @@ unsigned short cksum(unsigned char * buff, int len)
 	}
 
 	return (unsigned short)~sum;
+}
+
+int get_domain_ip(unsigned int * list, int len, const char * domain)
+{
+	struct hostent * hostent = gethostbyname(domain);
+	int count;
+
+	if (!hostent)
+		return -1;
+
+	for (count = 0; count < len && hostent->h_addr_list[count]; count++)
+	{
+		list[count] = *(unsigned int *)hostent->h_addr_list[count];
+		printf("aliase: %s\n", 
+				inet_ntoa(*(struct in_addr*)&list[count]));
+	}
+
+	return 0;
 }
 
 int find_pids(const char ** list, pid_t * plist, int len)
