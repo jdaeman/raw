@@ -48,12 +48,13 @@ int main(int argc, char ** argv)
 	unsigned char pkt[1024], rep[1024];
 	struct tcphdr * tcp;
 	int len, ret;
+	int on = 0;
 
 	struct sockaddr_in saddr;
 
 	unsigned char * tt;
-	if (argc == 1)
-		return -1;
+	//if (argc == 1)
+		//return -1;
 
 	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 	if (sock < 0)
@@ -62,12 +63,24 @@ int main(int argc, char ** argv)
 		return -1;
 	}
 
+	if (setsockopt(sock, IPPROTO_IP, IP_NODEFRAG, &on, sizeof(on)) < 0)
+	{
+		perror("setsockopt() error");
+		return -1;
+	}
+
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = PF_INET;
-	addr.sin_addr.s_addr = inet_addr(argv[1]);
+	addr.sin_addr.s_addr = inet_addr("192.168.0.1");
+	addr.sin_port = htons(80);
 
-	memset(&saddr, 0, sizeof(saddr));
-	saddr.sin_family = PF_INET;
+	/*if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+{
+	perror("connect()");
+	return -1;
+}
+else
+	return 0;*/
 	
 	/*timeout.tv_sec = 3;
 	timeout.tv_usec = 0;
@@ -79,11 +92,11 @@ int main(int argc, char ** argv)
 
 	for (port= 80; port <= 65536; port++)
 	{
-		memset(pkt, 0, sizeof(pkt));	
-		addr.sin_port = htons(port);
+		memset(pkt, 0, sizeof(pkt));
+		//addr.sin_port = htons(port);
 	
 		tcp = (struct tcphdr *)pkt;
-		tcp->source = htons(48888);
+		tcp->source = htons(51234);
 		tcp->dest = htons(port);
 		tcp->seq = htonl(123456);
 		tcp->doff = 6;
@@ -95,17 +108,15 @@ int main(int argc, char ** argv)
 		tt[1] = 4;
 		tt[2] = 0x05;
 		tt[3] = 0xb4;
-
 		tcp->check = cksum(pkt, sizeof(struct tcphdr) + 4);
-		printf("%u\n", cksum(pkt, sizeof(struct tcphdr) + 4));
-	
+
 		if (sendto(sock, pkt, sizeof(struct tcphdr) + 4, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 		{
 			perror("sendto() error");
 			break;
 		}
 
-		ret = recvfrom(sock, rep, sizeof(rep), 0, (struct sockaddr *)&raddr, &len); 
+		ret = recvfrom(sock, rep, sizeof(rep), 0, NULL, NULL); 
 		if (ret < 0)
 		{
 			perror("recvfrom() error");
