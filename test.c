@@ -8,15 +8,29 @@
 #include <linux/ip.h>
 #include "util.c"
 
+struct pseudo
+{
+	unsigned int src;
+	unsigned int dst;
+	unsigned char resv;
+	unsigned char proto;
+	unsigned short tcpseg_len;
+
+	unsigned char ptr[1024];
+};
+
 int main(int argc, char ** argv)
 {
 	int sock;
 	struct sockaddr_in addr;
 	unsigned short port = 80;
 	unsigned char pkt[1024], * tt;
+	unsigned char pseudo[12];
 	struct tcphdr * tcp;
 	struct iphdr * ip;
 	int on = 1, ret;
+	int proto = IPPROTO_TCP, tcp_len = 20;
+	struct pseudo pp;
 
 	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 	if (sock < 0)
@@ -39,40 +53,41 @@ int main(int argc, char ** argv)
 	memset(pkt, 0, sizeof(pkt));
 	
 	tcp = (struct tcphdr *)(pkt + 20);
-
-	tt = (unsigned char *)(tcp + 1);
-	tt[0] = 2;
-	tt[1] = 4;
-	tt[2] = 0x05;
-	tt[3] = 0xb4;
-
 	tcp->source = htons(51234);
 	tcp->dest = htons(port);
 	tcp->seq = htonl(172147);
 	tcp->ack_seq = 0;
-	tcp->doff = 6;
+	tcp->doff = 5;
 	tcp->syn = 1;			
 	tcp->window = htons(1024);
-	tcp->check = cksum(pkt + 20, 24);
-
-	printf("%d\n", cksum(pkt + 20, 24));
+	//1. pseudo-header
+	//|- src-addr(4) + dst-addr(4) + reserved(1) + protocol(1) + tcp-length(2)
+	//2. tcp-header
+	//3. tcp-payload
 
 	ip = (struct iphdr *)pkt;
 	ip->ihl = 5;
 	ip->version = 4;	
 	ip->tos = 0;
-	ip->tot_len = 44;
-	ip->id = htons(1234);
+	ip->tot_len = 40;
+	ip->id = htons(21423);
 	ip->frag_off = 0;
 	ip->ttl = 64;
 	ip->protocol = IPPROTO_TCP;
 	ip->saddr = inet_addr("192.168.0.7");
-	ip->daddr = inet_addr("192.168.0.1"); 
-	ip->check = cksum(pkt, 44); 
+	ip->daddr = inet_addr("192.168.0.1");
+	
+	memset(&pp, 0, sizeof(pp));
+	pp.src = ip->saddr;
+	pp.dst = ip->daddr;
+	pp.proto = IPPROTO_TCP;
+	pp.tcpseg_len = tcp->doff << 2;
+	memcpy(pp.ptr, tcp, tcp->doff << 2);
+ 
+	tcp->check = cksum((unsigned char *)&pp , 12 + 20);
+	ip->check = cksum(pkt, 40); 
 
-	printf("%d\n", cksum(pkt, 44));
-
-	if (sendto(sock, pkt, 44, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+	if (sendto(sock, pkt, 40, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 	{
 		perror("sendto() error");
 		return -1;
@@ -88,3 +103,6 @@ int main(int argc, char ** argv)
 	close(sock);
 	return 0;
 }
+
+// https://stackoverflow.com/questions/29877735/not-receiving-syn-ack-after-sending-syn-using-raw-socket
+
