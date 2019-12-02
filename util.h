@@ -15,6 +15,6 @@ extern int get_domain_ip(unsigned int * list, int len, const char * domain);
 
 extern int find_pids(const char ** list, int * plist, int len);
 
-extern int get_host_address(int sock, const char * interface, unsigned int * ip);
+extern int get_host_address(const char * interface, unsigned int * ip);
 
 #endif

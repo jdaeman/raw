@@ -344,19 +344,18 @@ int find_pids(const char ** list, pid_t * plist, int len)
 	return 0;
 }
 
-int get_host_address(int sock, const char * interface, unsigned int * ip)
+int get_host_address(const char * interface, unsigned int * ip)
 {
 	struct ifreq ifr;
+	int sock = socket(PF_INET, SOCK_DGRAM, 0);
 
 	memcpy(ifr.ifr_name, interface, strlen(interface));
 
-	//IP address
+	if (sock < 0)
+		return -1;
 	
 	if (ioctl(sock, SIOCGIFADDR, &ifr) < 0)
-	{
-		perror("ioctl() error");
 		return -1;
-	}
 
 	memcpy(ip, &ifr.ifr_addr.sa_data[2], sizeof(*ip));
 	return 0;
