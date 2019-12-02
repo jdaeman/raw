@@ -161,7 +161,7 @@ int half_scan(void * args)
 		addr.sin_family = PF_INET;
 		addr.sin_addr.s_addr = tar_list[cnt];
 
-		for (port = 0; port < 10000; port++ )
+		for (port = 8080; port <= 8080; port++)
 		{
 			/*port = rand() % 65536;
 			if (target_port[port])
