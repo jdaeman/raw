@@ -144,9 +144,9 @@ static void * rcv_handler(void * args)
 
 int main(int argc, char ** argv)
 {
-	struct winsize ws;
+	/*struct winsize ws;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
-	printf("%d %d\n", ws.ws_row, ws.ws_col);
+	printf("%d %d\n", ws.ws_row, ws.ws_col);*/
 
 	param_parse(argc, argv);
 
