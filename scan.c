@@ -71,7 +71,7 @@ static int param_parse(int argc, char ** argv)
 		}
 		else if (argv[idx][0] == 't' || argv[idx][1] == 't') //target
 		{
-			if (get_domain_ip(tar_list, LIST_LEN, argv[idx + 1]) < 0) //Unknown host
+			if (get_domain_ip(tar_list, LIST_LEN, argv[idx + 1]) < 0) 
 			{
 				herror("");
 				exit(-1);
@@ -134,7 +134,7 @@ static void * rcv_handler(void * args)
 		if (!(tcp->syn && tcp->ack)) //not syn-ack
 			continue;
 
-		printf("Port [%u] is opened\n", ntohs(tcp->source));
+		printf("Port [%5u] is opened\n", ntohs(tcp->source));
 	}
 	
 	close(sock);	

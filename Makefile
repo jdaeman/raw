@@ -16,7 +16,7 @@ SCAN_SRC := scan.c util.c
 
 LIST := list
 
-default : sniff arp wireless icmp	
+default : sniff arp wireless icmp scan	
 
 sniff : $(SRC)
 	$(CC) $(SNIFF_SRC) -o $(SNIFF_EXE)
