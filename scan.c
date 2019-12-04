@@ -5,9 +5,14 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+#include <netdb.h>
 #include <linux/tcp.h>
 #include <linux/ip.h>
-#include "util.c"
+#include "util.h"
+
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #define LIST_LEN 8
 
@@ -33,13 +38,22 @@ static routine action;
 
 static int param_parse(int argc, char ** argv)
 {
+	const char * usage =
+		"./scan interfacename\n"
+		"-o : operation\n"
+		"\tO: TCP open connection, H: TCP half-open connection\n"
+		"-t : target domain or ip\n";
+
 	int idx;
 
 	if (argc == 1)
 		goto parse_fail;	
 
 	if (get_host_address(argv[1], &src_ip) < 0)
-		goto parse_fail;
+	{
+		perror("");
+		exit(-1);
+	}
 
 	for (idx = 2; idx < argc; idx += 2)
 	{
@@ -53,34 +67,38 @@ static int param_parse(int argc, char ** argv)
 			else if (argv[idx + 1][0] == 'H') //Half-open Connection
 				action = half_scan;
 			else
-				goto parse_fail;
+				goto invalid_param;
 		}
 		else if (argv[idx][0] == 't' || argv[idx][1] == 't') //target
 		{
 			if (get_domain_ip(tar_list, LIST_LEN, argv[idx + 1]) < 0) //Unknown host
-				goto parse_fail;
+			{
+				herror("");
+				exit(-1);
+			}
 		}
 		else
-			goto parse_fail;	
+			goto invalid_param;	
 		
 	}
 
 	return 0;
 
+invalid_param:
+	printf("Invalid parameter\n");
+	exit(-1);
 parse_fail:
-	printf("Usage: \n");
+	printf("Usage: %s\n", usage);
 	exit(-1);
 }
 
 static int target_lookup(unsigned int * table, int len, unsigned int who)
 {
 	int cnt;
-	for (cnt = 0; cnt < len; cnt++)
+	for (cnt = 0; cnt < len && table[cnt]; cnt++)
 	{
 		if (table[cnt] == who)
 			return 0;
-		if (table[cnt] == 0)
-			break;
 	}
 	return -1;
 }
@@ -97,7 +115,6 @@ static void * rcv_handler(void * args)
 	int sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 	unsigned char buf[64];
 	int rcv_len;
-	unsigned int src, cnt;
 	
 	struct iphdr * ip;
 	struct tcphdr * tcp;
@@ -111,47 +128,63 @@ static void * rcv_handler(void * args)
 			continue;
 
 		tcp = (struct tcphdr *)(ip + 1);
-		if (target_lookup(use_port, LIST_LEN, tcp->dest) < 0) //not correct port
+		if (target_lookup(use_port, LIST_LEN, ntohs(tcp->dest)) < 0) //not correct port
 			continue;
-		
-		printf("[%u] is opend\n", ntohs(tcp->source));
+	
+		if (!(tcp->syn && tcp->ack)) //not syn-ack
+			continue;
+
+		printf("Port [%u] is opened\n", ntohs(tcp->source));
 	}
-		
+	
+	close(sock);	
 	return NULL;
 }
 
 
 int main(int argc, char ** argv)
 {
+	struct winsize ws;
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+	printf("%d %d\n", ws.ws_row, ws.ws_col);
+
 	param_parse(argc, argv);
+
 	srand(time(NULL));
 	init_use_port();
+
 	action(NULL);
+
 	return 0;
 }
 
 int open_scan(void * argc)
 {
+	printf("implementing...\n");
 	return 0;
 }
 
 int half_scan(void * args)
 {
-	int sock;
+	int sock, cnt;
 	struct sockaddr_in addr;
-	unsigned short port = 8080;
+	unsigned int port = 8080;
 	unsigned char pkt[1024];
 	struct tcphdr * tcp;
-	struct pseudo * pp;
-	int cnt;
-
-	static unsigned int target_port[65536];
-	int tot = 0;
+	struct pseudo * ph;
+	pthread_t tid;
 
 	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 	if (sock < 0)
 	{
 		perror("socket() error");
+		return -1;
+	}
+
+	//receive handler
+	if (pthread_create(&tid, NULL, rcv_handler, NULL) < 0)
+	{
+		perror("pthread_create() error");
 		return -1;
 	}
 
@@ -161,141 +194,55 @@ int half_scan(void * args)
 		addr.sin_family = PF_INET;
 		addr.sin_addr.s_addr = tar_list[cnt];
 
-		for (port = 8080; port <= 8080; port++)
-		{
-			/*port = rand() % 65536;
-			if (target_port[port])
-				continue;
+		printf("Start port scan to %s\n", inet_ntoa(*(struct in_addr *)&tar_list[cnt]));
 			
-			target_port[port] = 1;
-			tot += 1;*/
-
+		for (port = 0; port <= 65535; port++)
+		{	
 			addr.sin_port = htons(port);
 
-			memset(pkt, 0, sizeof(pkt));
-			tcp = (struct tcphdr *)(pkt + 12);
-			tcp->source = htons(use_port[rand() % LIST_LEN]); //random
-			tcp->dest = htons(port);
-			tcp->seq = htonl(rand()); //random
-			tcp->ack_seq = 0;
-			tcp->doff = 5;
-			tcp->syn = 1;			
-			tcp->window = htons(1024);
+			memset(pkt, 0, sizeof(pkt)); //reset
 
-			pp = (struct pseudo *)pkt;
-			pp->src = src_ip;
-			pp->dst = tar_list[cnt];
-			pp->proto = IPPROTO_TCP;
-			pp->tcpseg_len = htons(tcp->doff << 2);
+			tcp = (struct tcphdr *)(pkt + 12); 
+			tcp->source = htons(use_port[rand() % LIST_LEN]); //source port, random
+			tcp->dest = htons(port); //destination port
+			tcp->seq = htonl(rand()); //random seq number
+			tcp->ack_seq = 0; //zero ack
+			tcp->doff = 5; //packet length, 5*4 = 20Bytes
+			tcp->syn = 1; //SYN packet		
+			tcp->window = htons(1024); //buffer size
+
+			ph = (struct pseudo *)pkt; //pseudo header
+			ph->src = src_ip; //source ip
+			ph->dst = tar_list[cnt]; //destination ip
+			ph->proto = IPPROTO_TCP; //protocol
+			ph->tcpseg_len = htons(tcp->doff << 2 + 0); //there no payload
 
 			tcp->check = cksum(pkt, 12 + 20);
 
 			if (sendto(sock, pkt + 12, 20, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 			{
 				perror("sendto() error");
-				return -1;
+				goto exit_state;
 			}
 
-			usleep(2000);
+			usleep(500);
 		}
+		puts("");
 	}
-	
+
+exit_state:
+	pthread_cancel(tid);
+	pthread_join(tid, NULL);
 	close(sock);
 	return 0;
 }
 
-/*int backup(void * args)
-{
-	int sock;
-	struct sockaddr_in addr;
-	unsigned short port = 8080;
-	unsigned char pkt[1024], * tt;
-	unsigned char pseudo[12];
-	struct tcphdr * tcp;
-	struct iphdr * ip;
-	int on = 1, ret;
-	int proto = IPPROTO_TCP, tcp_len = 20;
-	struct pseudo * pp;
-	struct sockaddr_in aaa;
-	int zzz;
 
-	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
-	if (sock < 0)
-	{
-		perror("socket() error");
-		return -1;
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = PF_INET;
-	addr.sin_addr.s_addr = inet_addr("10.20.0.1");
-	addr.sin_port = htons(port);
-
-	memset(pkt, 0, sizeof(pkt));
-	
-	tcp = (struct tcphdr *)(pkt + 12);
-	tcp->source = htons(51234);
-	tcp->dest = htons(port);
-	tcp->seq = htonl(172147);
-	tcp->ack_seq = 0;
-	tcp->doff = 5;
-	tcp->syn = 1;			
-	tcp->window = htons(1024);
-	//1. pseudo-header
-	//|- src-addr(4) + dst-addr(4) + reserved(1) + protocol(1) + tcp-length(2)
-	//2. tcp-header
-	//3. tcp-payload
-	pp = (struct pseudo *)pkt;
-	pp->src = inet_addr("10.20.17.245");
-	pp->dst = inet_addr("10.20.0.1");
-	pp->proto = IPPROTO_TCP;
-	pp->tcpseg_len = htons(tcp->doff << 2);
-
-	tcp->check = cksum(pkt, 12 + 20);
-
-	ip = (struct iphdr *)pkt;
-	ip->ihl = 5;
-	ip->version = 4;	
-	ip->tos = 0;
-	ip->tot_len = 40;
-	ip->id = htons(21423);
-	ip->frag_off = 0;
-	ip->ttl = 64;
-	ip->protocol = IPPROTO_TCP;
-	ip->saddr = inet_addr("192.168.0.7");
-	ip->daddr = inet_addr("192.168.0.1");
-	
-	memset(&pp, 0, sizeof(pp));
-	pp.src = ip->saddr;
-	pp.dst = ip->daddr;
-	pp.proto = IPPROTO_TCP;
-	pp.tcpseg_len = tcp->doff << 2;
-	memcpy(pp.ptr, tcp, tcp->doff << 2);
- 
-	tcp->check = cksum((unsigned char *)&pp , 12 + 20);
-	ip->check = cksum(pkt, 40);
-
-	if (sendto(sock, pkt + 12, 20, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-	{
-		perror("sendto() error");
-		return -1;
-	}
-
-	ret = recvfrom(sock, pkt, sizeof(pkt), 0, (struct sockaddr *)&aaa, &zzz); 
-	if (ret < 0)
-	{
-		perror("recvfrom() error");
-		return -1;
-	}
-	else
-		printf("%d received\n", ret);
-
-	printf("port: %u\n", ntohs(aaa.sin_port));
-	printf("src: %s\n", inet_ntoa(aaa.sin_addr));
-
-	close(sock);
-	return 0;
-}*/
-
-// https://stackoverflow.com/questions/29877735/not-receiving-syn-ack-after-sending-syn-using-raw-socket
-
+//ref, https://stackoverflow.com/questions/29877735/not-receiving-syn-ack-after-sending-syn-using-raw-socket
+//ref, https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c/26423946
+//https://stackoverflow.com/questions/33025599/move-the-cursor-in-a-c-program
+//https://unix.stackexchange.com/questions/422698/how-to-set-absolute-mouse-cursor-position-in-wayland-without-using-mouse
+//
+//0 ~ 1023: Well-known port
+//1024 ~ 49151: Registered
+//49152 ~ 65535: Dynamic or private

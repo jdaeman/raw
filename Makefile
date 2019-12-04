@@ -12,6 +12,8 @@ WLESS_EXE := wireless
 
 ICMP_SRC := icmp.c util.c
 
+SCAN_SRC := scan.c util.c
+
 LIST := list
 
 default : sniff arp wireless icmp	
@@ -28,6 +30,9 @@ wireless : $(WLESS_SRC)
 icmp : $(ICMP_SRC)
 	$(CC) $(ICMP_SRC) -o icmp
 
+scan : $(SCAN_SRC)
+	$(CC) $(SCAN_SRC) -o scan $(OPT)
+
 vendor-update :
 	#first, create 'list' file that has unknown mac address of vendor
 	#ex) ./arp 'eth0' hostscan > sample
@@ -36,11 +41,7 @@ vendor-update :
 	./vendor_finder.php $(subst $(LIST),,$(shell wc -w $(LIST))) < $(LIST) >> mac-vendor.txt
 
 clean :
-	rm -f $(SNIFF_EXE) $(ARP_EXE) $(WLESS_EXE) icmp
+	rm -f $(SNIFF_EXE) $(ARP_EXE) $(WLESS_EXE) icmp scan
 
-
-#git add -A
-#git commit -m "file name"
-#git push
 
 

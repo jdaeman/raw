@@ -292,8 +292,8 @@ int get_domain_ip(unsigned int * list, int len, const char * domain)
 	for (count = 0; count < len && hostent->h_addr_list[count]; count++)
 	{
 		list[count] = *(unsigned int *)hostent->h_addr_list[count];
-		printf("aliase: %s\n", 
-				inet_ntoa(*(struct in_addr*)&list[count]));
+		//printf("aliase: %s\n", 
+				//inet_ntoa(*(struct in_addr*)&list[count]));
 	}
 
 	return 0;
