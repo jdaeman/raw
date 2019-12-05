@@ -95,6 +95,9 @@ static int param_parse(int argc, char ** argv)
 		
 	}
 
+	if (!action)
+		goto parse_fail;
+
 	return 0;
 
 invalid_param:
@@ -158,14 +161,15 @@ static void * trace_rcv_handler(void * args)
 {
 	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP));
 	unsigned char buf[512];
-	int rcv_len, hop = 1;
-	int sig;
-	int sport = (int)args;
+	int rcv_len, hop = 1, sig;
+	int sport = *(int *)args;
 
 	struct ethhdr * eth;	
 	struct iphdr * ip;
 	struct icmphdr * icmp;
 	struct tcphdr * tcp;
+
+	free(args);
 
 	while ((rcv_len = recvfrom(sock, buf, sizeof(buf), 0, NULL, NULL)) > 0)
 	{
@@ -274,12 +278,9 @@ int open_scan(void * argc)
 
 int half_scan(void * args)
 {
-	int sock, cnt;
+	int sock, cnt, len, port;
 	struct sockaddr_in addr;
-	unsigned int port = 8080;
-	unsigned char pkt[1024];
-	struct tcphdr * tcp;
-	struct pseudo * ph;
+	unsigned char pkt[1024], * ptr;
 	pthread_t tid;
 
 	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
@@ -309,25 +310,9 @@ int half_scan(void * args)
 			addr.sin_port = htons(port);
 
 			memset(pkt, 0, sizeof(pkt)); //reset
+			ptr = create_tcp_syn_pkt(pkt, tar_list[cnt], port, use_port[rand() % LIST_LEN], &len);
 
-			tcp = (struct tcphdr *)(pkt + 12); 
-			tcp->source = htons(use_port[rand() % LIST_LEN]); //source port, random
-			tcp->dest = htons(port); //destination port
-			tcp->seq = htonl(rand()); //random seq number
-			tcp->ack_seq = 0; //zero ack
-			tcp->doff = 5; //packet length, 5*4 = 20Bytes
-			tcp->syn = 1; //SYN packet		
-			tcp->window = htons(1024); //buffer size
-
-			ph = (struct pseudo *)pkt; //pseudo header
-			ph->src = src_ip; //source ip
-			ph->dst = tar_list[cnt]; //destination ip
-			ph->proto = IPPROTO_TCP; //protocol
-			ph->tcpseg_len = htons(tcp->doff << 2 + 0); //there no payload
-
-			tcp->check = cksum(pkt, 12 + 20);
-
-			if (sendto(sock, pkt + 12, 20, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+			if (sendto(sock, ptr, len, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 			{
 				perror("sendto() error");
 				goto exit_state;
@@ -362,6 +347,7 @@ int trace(void * args)
 	int sock, cnt = 0, sport = 0, ttl = 1, send_len;
 	struct sockaddr_in addr;
 	unsigned char pkt[1024], * ptr;
+	int * param;
 	pthread_t tid;
 
 	if (tar_port < 0)
@@ -377,10 +363,12 @@ int trace(void * args)
 
 	signal(SIGUSR1, sighandle);
 	signal(SIGUSR2, sighandle);
+	param = (int *)malloc(sizeof(int));
 	sport = use_port[rand() % LIST_LEN];
+	*param = sport;
 
 	//receive handler
-	if (pthread_create(&tid, NULL, trace_rcv_handler, (void*)sport) < 0)
+	if (pthread_create(&tid, NULL, trace_rcv_handler, param) < 0)
 	{
 		perror("pthread_create() error");
 		return -1;
@@ -406,13 +394,13 @@ int trace(void * args)
 		if (sendto(sock, ptr, send_len, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 		{
 			perror("sendto() error");
-			break;
+			goto exit_state;
 		}
 
 		if (sleep(3) > 0)
 			ttl++; //to next hop
 		else
-			cnt++; //resending prev packet	
+			cnt++; //re-sending prev packet	
 	}
 
 	if (cnt >= 5)
