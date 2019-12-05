@@ -7,8 +7,11 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <netdb.h>
+#include <signal.h>
 #include <linux/tcp.h>
 #include <linux/ip.h>
+#include <linux/icmp.h>
+#include <linux/if_ether.h>
 #include "util.h"
 
 #include <termios.h>
@@ -29,10 +32,13 @@ typedef int (*routine)(void *);
 
 int open_scan(void * args);
 int half_scan(void * args);
+int trace(void * args);
 
 static unsigned int src_ip;
 static unsigned int tar_list[LIST_LEN];
 static unsigned int use_port[LIST_LEN];
+static unsigned int cont_next;
+static int tar_port;
 
 static routine action;
 
@@ -66,6 +72,8 @@ static int param_parse(int argc, char ** argv)
 				action = open_scan;
 			else if (argv[idx + 1][0] == 'H') //Half-open Connection
 				action = half_scan;
+			else if (argv[idx + 1][0] == 'T') //Trace route
+				action = trace;
 			else
 				goto invalid_param;
 		}
@@ -76,6 +84,10 @@ static int param_parse(int argc, char ** argv)
 				herror("");
 				exit(-1);
 			}
+		}
+		else if (argv[idx][1] == 'p')
+		{
+			tar_port = atoi(argv[idx + 1]);
 		}
 		else
 			goto invalid_param;	
@@ -141,6 +153,81 @@ static void * rcv_handler(void * args)
 	return NULL;
 }
 
+static void * trace_rcv_handler(void * args)
+{
+	int sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP));
+	unsigned char buf[512];
+	int rcv_len, hop = 1;
+	int sig;
+	int sport = (int)args;
+
+	struct ethhdr * eth;	
+	struct iphdr * ip;
+	struct icmphdr * icmp;
+	struct tcphdr * tcp;
+
+	while ((rcv_len = recvfrom(sock, buf, sizeof(buf), 0, NULL, NULL)) > 0)
+	{
+		buf[rcv_len] = 0;
+
+		eth = (struct ethhdr *)buf;
+		ip = (struct iphdr *)(eth + 1);	
+		icmp = (struct icmphdr *)(ip + 1);
+		tcp = (struct tcphdr *)(ip + 1);
+
+		if (ip->protocol == IPPROTO_ICMP)
+		{
+			if (icmp->type == 11 && icmp->code == 0)
+				sig = SIGUSR1;
+			else if (icmp->type == 0 && icmp->code == 0)
+				sig = SIGUSR2;
+			else
+				continue;
+		}
+		else if (ip->protocol == IPPROTO_TCP)
+		{
+			if (ip->saddr == tar_list[0] && tcp->dest == htons(sport) && tcp->syn && tcp->ack)
+				sig = SIGUSR2;
+			else
+				continue;
+		}
+		else
+			continue;
+	
+		printf("Hop: %d\t[%s]\n", hop++, inet_ntoa(*(struct in_addr *)&ip->saddr));
+		kill(getpid(), sig);
+	}
+	
+	close(sock);	
+	return NULL;
+}
+
+static int create_tcp_syn_pkt(unsigned char * pkt, int len, int tar_idx, int dport, int sport)
+{
+	struct tcphdr * tcp;
+	struct pseudo * ph;
+
+	memset(pkt, 0, sizeof(pkt)); //reset
+
+	tcp = (struct tcphdr *)(pkt + 12); 
+	tcp->source = htons(sport); //source port
+	tcp->dest = htons(dport); //destination port
+	tcp->seq = htonl(rand()); //random seq number
+	tcp->ack_seq = 0; //zero ack
+	tcp->doff = 5; //packet length, 5*4 = 20Bytes
+	tcp->syn = 1; //SYN packet		
+	tcp->window = htons(1024); //buffer size
+
+	ph = (struct pseudo *)pkt; //pseudo header
+	ph->src = src_ip; //source ip
+	ph->dst = tar_list[cnt]; //destination ip
+	ph->proto = IPPROTO_TCP; //protocol
+	ph->tcpseg_len = htons(tcp->doff << 2 + 0); //there no payload
+
+	tcp->check = cksum(pkt, 12 + 20);
+
+	return 20;
+}
 
 int main(int argc, char ** argv)
 {
@@ -236,6 +323,102 @@ exit_state:
 	close(sock);
 	return 0;
 }
+
+static void sighandle(int sig)
+{
+	if (sig == SIGUSR1)
+	{
+		cont_next = 1;
+	}
+	else if (sig == SIGUSR2)
+	{
+		cont_next = 2;
+	}
+}
+
+int trace(void * args)
+{
+	int sock, cnt;
+	int sport;
+	struct sockaddr_in addr;
+	unsigned char pkt[1024], buf[64];
+	struct tcphdr * tcp;
+	struct pseudo * ph;
+	struct sigaction act;
+	pthread_t tid;
+	int ttl = 1;
+
+	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+	if (sock < 0)
+	{
+		perror("socket() error");
+		return -1;
+	}
+
+	signal(SIGUSR1, sighandle);
+	signal(SIGUSR2, sighandle);
+	sport = use_port[rand() % LIST_LEN];
+
+	//receive handler
+	if (pthread_create(&tid, NULL, trace_rcv_handler, (void*)sport) < 0)
+	{
+		perror("pthread_create() error");
+		return -1;
+	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = PF_INET;
+	addr.sin_addr.s_addr = tar_list[0];	
+	addr.sin_port = htons(tar_port);
+
+	memset(pkt, 0, sizeof(pkt)); //reset
+
+	tcp = (struct tcphdr *)(pkt + 12); 
+	tcp->source = htons(sport); //source port, random
+	tcp->dest = htons(tar_port); //destination port
+	tcp->seq = htonl(rand()); //random seq number
+	tcp->ack_seq = 0; //zero ack
+	tcp->doff = 5; //packet length, 5*4 = 20Bytes
+	tcp->syn = 1; //SYN packet		
+	tcp->window = htons(1024); //buffer size
+
+	ph = (struct pseudo *)pkt; //pseudo header
+	ph->src = src_ip; //source ip
+	ph->dst = tar_list[cnt]; //destination ip
+	ph->proto = IPPROTO_TCP; //protocol
+	ph->tcpseg_len = htons(tcp->doff << 2 + 0); //there no payload
+
+	tcp->check = cksum(pkt, 12 + 20);
+
+	printf("Trace route to destination: [%s]\n", inet_ntoa(addr.sin_addr));
+
+	while (1)
+	{
+		setsockopt(sock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+		ttl++;
+
+		if (sendto(sock, pkt + 12, 20, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		{
+			perror("sendto() error");
+			break;
+		}
+
+		while (!cont_next)
+			sleep(3);
+		if (cont_next == 2)
+			break;
+		cont_next = 0;
+	}
+
+			
+exit_state:
+	pthread_cancel(tid);
+	pthread_join(tid, NULL);
+	close(sock);
+	return 0;
+}
+
+
 
 
 //ref, https://stackoverflow.com/questions/29877735/not-receiving-syn-ack-after-sending-syn-using-raw-socket
