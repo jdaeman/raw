@@ -38,7 +38,7 @@ static unsigned int src_ip;
 static unsigned int tar_list[LIST_LEN];
 static unsigned int use_port[LIST_LEN];
 static unsigned int cont_next;
-static int tar_port;
+static int tar_port = -1;
 
 static routine action;
 
@@ -47,8 +47,9 @@ static int param_parse(int argc, char ** argv)
 	const char * usage =
 		"./scan interfacename\n"
 		"-o : operation\n"
-		"\tO: TCP open connection, H: TCP half-open connection\n"
-		"-t : target domain or ip\n";
+		"\tO: TCP open connection, H: TCP half-open connection, T: Trace route\n"
+		"-t : target domain or ip\n"
+		"-p : target port\n"; 
 
 	int idx;
 
@@ -177,16 +178,16 @@ static void * trace_rcv_handler(void * args)
 
 		if (ip->protocol == IPPROTO_ICMP)
 		{
-			if (icmp->type == 11 && icmp->code == 0)
+			if (icmp->type == 11 && icmp->code == 0) //Time exceeded
 				sig = SIGUSR1;
-			else if (icmp->type == 0 && icmp->code == 0)
+			else if (icmp->type == 0 && icmp->code == 0) //Echo reply
 				sig = SIGUSR2;
 			else
 				continue;
 		}
 		else if (ip->protocol == IPPROTO_TCP)
 		{
-			if (ip->saddr == tar_list[0] && tcp->dest == htons(sport) && tcp->syn && tcp->ack)
+			if (ip->saddr == tar_list[0] && tcp->dest == htons(sport) && tcp->syn && tcp->ack) //SYN-ACK
 				sig = SIGUSR2;
 			else
 				continue;
@@ -194,7 +195,8 @@ static void * trace_rcv_handler(void * args)
 		else
 			continue;
 	
-		printf("Hop: %d\t[%s]\n", hop++, inet_ntoa(*(struct in_addr *)&ip->saddr));
+		printf("[%2d] Hop [%s]\n", hop++, inet_ntoa(*(struct in_addr *)&ip->saddr));
+		printf("\t\t↓\n");
 		kill(getpid(), sig);
 	}
 	
@@ -202,12 +204,10 @@ static void * trace_rcv_handler(void * args)
 	return NULL;
 }
 
-static int create_tcp_syn_pkt(unsigned char * pkt, int len, int tar_idx, int dport, int sport)
+static unsigned char * create_tcp_syn_pkt(unsigned char * pkt, unsigned int dest, int dport, int sport, int * pktlen)
 {
 	struct tcphdr * tcp;
 	struct pseudo * ph;
-
-	memset(pkt, 0, sizeof(pkt)); //reset
 
 	tcp = (struct tcphdr *)(pkt + 12); 
 	tcp->source = htons(sport); //source port
@@ -220,13 +220,34 @@ static int create_tcp_syn_pkt(unsigned char * pkt, int len, int tar_idx, int dpo
 
 	ph = (struct pseudo *)pkt; //pseudo header
 	ph->src = src_ip; //source ip
-	ph->dst = tar_list[cnt]; //destination ip
+	ph->dst = dest; //destination ip
 	ph->proto = IPPROTO_TCP; //protocol
 	ph->tcpseg_len = htons(tcp->doff << 2 + 0); //there no payload
 
 	tcp->check = cksum(pkt, 12 + 20);
 
-	return 20;
+	*pktlen = 20;
+
+	return pkt + 12;
+}
+
+static unsigned char * create_echo_req_pkt(unsigned char * pkt, const char * msg, int * pktlen)
+{
+	struct icmphdr * icmp;
+	unsigned char * ptr;
+
+	icmp = (struct icmphdr *)pkt;
+	icmp->type = 8;
+	icmp->code = 0;
+	
+	ptr = (unsigned char *)(icmp + 1);
+	strcpy(ptr, msg);
+	
+	icmp->checksum = cksum(pkt, sizeof(struct icmphdr) + strlen(msg));
+
+	*pktlen = 20 + strlen(msg);	
+
+	return pkt;
 }
 
 int main(int argc, char ** argv)
@@ -338,17 +359,16 @@ static void sighandle(int sig)
 
 int trace(void * args)
 {
-	int sock, cnt;
-	int sport;
+	int sock, cnt = 0, sport = 0, ttl = 1, send_len;
 	struct sockaddr_in addr;
-	unsigned char pkt[1024], buf[64];
-	struct tcphdr * tcp;
-	struct pseudo * ph;
-	struct sigaction act;
+	unsigned char pkt[1024], * ptr;
 	pthread_t tid;
-	int ttl = 1;
 
-	sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+	if (tar_port < 0)
+		sock = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
+	else
+		sock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+
 	if (sock < 0)
 	{
 		perror("socket() error");
@@ -371,46 +391,36 @@ int trace(void * args)
 	addr.sin_addr.s_addr = tar_list[0];	
 	addr.sin_port = htons(tar_port);
 
-	memset(pkt, 0, sizeof(pkt)); //reset
-
-	tcp = (struct tcphdr *)(pkt + 12); 
-	tcp->source = htons(sport); //source port, random
-	tcp->dest = htons(tar_port); //destination port
-	tcp->seq = htonl(rand()); //random seq number
-	tcp->ack_seq = 0; //zero ack
-	tcp->doff = 5; //packet length, 5*4 = 20Bytes
-	tcp->syn = 1; //SYN packet		
-	tcp->window = htons(1024); //buffer size
-
-	ph = (struct pseudo *)pkt; //pseudo header
-	ph->src = src_ip; //source ip
-	ph->dst = tar_list[cnt]; //destination ip
-	ph->proto = IPPROTO_TCP; //protocol
-	ph->tcpseg_len = htons(tcp->doff << 2 + 0); //there no payload
-
-	tcp->check = cksum(pkt, 12 + 20);
-
+	memset(pkt, 0, sizeof(pkt));
+	if (tar_port < 0)
+		ptr = create_echo_req_pkt(pkt, "hello", &send_len);
+	else
+		ptr = create_tcp_syn_pkt(pkt, tar_list[0], tar_port, sport, &send_len);
+	
 	printf("Trace route to destination: [%s]\n", inet_ntoa(addr.sin_addr));
 
-	while (1)
+	while (cnt < 5 && cont_next != 2)
 	{
 		setsockopt(sock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
-		ttl++;
 
-		if (sendto(sock, pkt + 12, 20, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		if (sendto(sock, ptr, send_len, 0, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 		{
 			perror("sendto() error");
 			break;
 		}
 
-		while (!cont_next)
-			sleep(3);
-		if (cont_next == 2)
-			break;
-		cont_next = 0;
+		if (sleep(3) > 0)
+			ttl++; //to next hop
+		else
+			cnt++; //resending prev packet	
 	}
 
-			
+	if (cnt >= 5)
+		printf("Can not trace route\n");
+	else
+		printf("Arrive at destination\n");
+	puts("");
+	
 exit_state:
 	pthread_cancel(tid);
 	pthread_join(tid, NULL);
