@@ -345,6 +345,7 @@ static void sighandle(int sig)
 int trace(void * args)
 {
 	int sock, cnt = 0, sport = 0, ttl = 1, send_len;
+	int ttl_limit = 32;
 	struct sockaddr_in addr;
 	unsigned char pkt[1024], * ptr;
 	int * param;
@@ -387,7 +388,7 @@ int trace(void * args)
 	
 	printf("Trace route to destination: [%s]\n", inet_ntoa(addr.sin_addr));
 
-	while (cnt < 5 && cont_next != 2)
+	while (cnt < 16 && cont_next != 2)
 	{
 		setsockopt(sock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
@@ -397,13 +398,12 @@ int trace(void * args)
 			goto exit_state;
 		}
 
-		if (sleep(3) > 0)
-			ttl++; //to next hop
-		else
-			cnt++; //re-sending prev packet	
+		if (!sleep(2))
+			cnt++;
+		ttl++;
 	}
 
-	if (cnt >= 5)
+	if (cnt >= 16)
 		printf("Can not trace route\n");
 	else
 		printf("Arrive at destination\n");
